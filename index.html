@@ -171,10 +171,10 @@
         let level = 1;
 
         const scenarios = [
-            { name: "Campo Verde", sky: "#87CEEB", ground: "#55a630", dirt: "#415A77", speed: 6 },
-            { name: "Bosque Oscuro", sky: "#2B2D42", ground: "#3A5A40", dirt: "#1D2D44", speed: 7 },
-            { name: "Atardecer Naranja", sky: "#FF7B00", ground: "#8B4513", dirt: "#780000", speed: 8 },
-            { name: "Noche Helada", sky: "#14213D", ground: "#E5E5E5", dirt: "#334E68", speed: 9 }
+            { name: "Campo Verde", sky: "#87CEEB", ground: "#55a630", dirt: "#415A77", speed: 5 },
+            { name: "Bosque Oscuro", sky: "#2B2D42", ground: "#3A5A40", dirt: "#1D2D44", speed: 6 },
+            { name: "Atardecer Naranja", sky: "#FF7B00", ground: "#8B4513", dirt: "#780000", speed: 7 },
+            { name: "Noche Helada", sky: "#14213D", ground: "#E5E5E5", dirt: "#334E68", speed: 8 }
         ];
 
         let currentScenario = scenarios[0];
@@ -192,6 +192,7 @@
 
         let obstacles = [];
         let reachedNest = false;
+        let fox = { x: -50, y: 0, width: 70, height: 50 };
 
         function resetGame() {
             distance = 0;
@@ -199,6 +200,7 @@
             obstacles = [];
             reachedNest = false;
             levelText.innerText = `Nivel: ${level} - ${currentScenario.name}`;
+            fox.x = -100;
             updateHUD();
         }
 
@@ -219,22 +221,27 @@
             setTimeout(animateChicken, 100);
         }
 
-        document.getElementById("btn-up").addEventListener("click", () => {
+        const btnUp = document.getElementById("btn-up");
+        const btnDown = document.getElementById("btn-down");
+
+        btnUp.addEventListener("touchstart", (e) => {
+            e.preventDefault();
             if (!gameRunning || reachedNest) return;
             if (!chicken.jumping) {
                 chicken.vy = -16;
                 chicken.jumping = true;
                 chicken.ducking = false;
             }
-        });
+        }, {passive: false});
 
-        document.getElementById("btn-down").addEventListener("click", () => {
+        btnDown.addEventListener("touchstart", (e) => {
+            e.preventDefault();
             if (!gameRunning || reachedNest) return;
             if (!chicken.jumping) {
                 chicken.ducking = true;
                 setTimeout(() => { chicken.ducking = false; }, 600);
             }
-        });
+        }, {passive: false});
 
         window.addEventListener("keydown", (e) => {
             if (!gameRunning || reachedNest) return;
@@ -284,16 +291,19 @@
                 chicken.jumping = false;
             }
 
-            if (Math.random() < 0.015) {
+            if (Math.random() < 0.012) {
                 let isBranch = Math.random() > 0.5;
                 obstacles.push({
                     x: canvas.width,
                     y: isBranch ? groundY - 110 : groundY - 50,
                     width: isBranch ? 40 : 50,
                     height: isBranch ? 30 : 50,
-                    type: isBranch ? "branch" : "fox"
+                    type: isBranch ? "branch" : "log"
                 });
             }
+
+            fox.x += (chicken.x - fox.x - 120) * 0.05;
+            fox.y = groundY - fox.height;
 
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 obstacles[i].x -= currentScenario.speed;
@@ -306,13 +316,35 @@
                 ) {
                     gameRunning = false;
                     overlay.style.display = "flex";
-                    document.querySelector("#ui-overlay h1").innerText = "💥 ¡Te atrapó el zorro!";
+                    document.querySelector("#ui-overlay h1").innerText = "💥 ¡Te alcanzó el zorro!";
                     startBtn.innerText = "VOLVER A INTENTAR";
+                }
+
+                if (
+                    fox.x < obstacles[i].x + obstacles[i].width &&
+                    fox.x + fox.width > obstacles[i].x &&
+                    fox.y < obstacles[i].y + obstacles[i].height &&
+                    fox.y + fox.height > obstacles[i].y
+                ) {
+                    obstacles.splice(i, 1);
+                    continue;
                 }
 
                 if (obstacles[i].x + obstacles[i].width < 0) {
                     obstacles.splice(i, 1);
                 }
+            }
+
+            if (
+                chicken.x < fox.x + fox.width - 20 &&
+                chicken.x + chicken.width > fox.x + 20 &&
+                chicken.y < fox.y + fox.height &&
+                chicken.y + chicken.height > fox.y
+            ) {
+                gameRunning = false;
+                overlay.style.display = "flex";
+                document.querySelector("#ui-overlay h1").innerText = "💥 ¡Te alcanzó el zorro!";
+                startBtn.innerText = "VOLVER A INTENTAR";
             }
         }
 
@@ -329,36 +361,18 @@
 
             obstacles.forEach(obs => {
                 if (obs.type === "branch") {
-                    ctx.fillStyle = "#8B4513";
-                    ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
-                    ctx.beginPath();
-                    ctx.moveTo(obs.x, obs.y + 10);
-                    ctx.lineTo(obs.x + obs.width, obs.y + 10);
-                    ctx.strokeStyle = "#D2691E";
-                    ctx.stroke();
+                    ctx.fillStyle = "#5c4033";
+                    ctx.fillRect(obs.x, obs.y, 10, obs.height);
+                    ctx.fillRect(obs.x + 10, obs.y + 10, 30, 10);
                 } else {
-                    ctx.fillStyle = "#D43D1A";
+                    ctx.fillStyle = "#8B4513";
                     ctx.beginPath();
-                    ctx.arc(obs.x + 25, obs.y + 25, 20, 0, Math.PI * 2);
+                    ctx.roundRect(obs.x, obs.y, obs.width, obs.height, 10);
                     ctx.fill();
-                    ctx.fillStyle = "#A21D0A";
-                    ctx.beginPath();
-                    ctx.arc(obs.x + 20, obs.y + 20, 8, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.fillStyle = "white";
-                    ctx.beginPath();
-                    ctx.arc(obs.x + 30, obs.y + 15, 6, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.fillStyle = "black";
-                    ctx.beginPath();
-                    ctx.arc(obs.x + 32, obs.y + 15, 2, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.fillStyle = "#FFA800";
-                    ctx.fillRect(obs.x + 35, obs.y + 30, 20, 10);
                 }
             });
 
-            ctx.fillStyle = "white";
+            ctx.fillStyle = "#ffcccc";
             ctx.beginPath();
             let renderY = chicken.ducking ? chicken.y + 20 : chicken.y;
             let renderH = chicken.ducking ? 40 : 60;
@@ -384,15 +398,33 @@
             ctx.beginPath();
             ctx.arc(chicken.x + 30, renderY + bob + 5, 8, 0, Math.PI * 2);
             ctx.fill();
+            
+            ctx.fillStyle = "#ffffcc";
+            let wingY = chicken.ducking ? chicken.y + 25 : chicken.y + 30;
+            ctx.beginPath();
+            ctx.ellipse(chicken.x + 25, wingY + bob, 15, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
 
-            ctx.fillStyle = "white";
+            ctx.fillStyle = "#ffffff";
             let eggY = chicken.ducking ? chicken.y + 5 : chicken.y - 10;
             ctx.beginPath();
             ctx.ellipse(chicken.x + 20, eggY + bob, 12, 18, 0, 0, Math.PI * 2);
             ctx.fill();
-            ctx.strokeStyle = "#F0F0F0";
-            ctx.lineWidth = 1;
-            ctx.stroke();
+
+            ctx.fillStyle = "#D43D1A";
+            ctx.beginPath();
+            ctx.roundRect(fox.x, fox.y, fox.width, fox.height, 10);
+            ctx.fill();
+            ctx.fillStyle = "#FFA800";
+            ctx.fillRect(fox.x + 50, fox.y + 20, 15, 10);
+            ctx.fillStyle = "white";
+            ctx.beginPath();
+            ctx.arc(fox.x + 20, fox.y + 15, 6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "black";
+            ctx.beginPath();
+            ctx.arc(fox.x + 22, fox.y + 15, 2, 0, Math.PI * 2);
+            ctx.fill();
 
             if (reachedNest) {
                 gameRunning = false;
