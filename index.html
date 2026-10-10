@@ -36,12 +36,10 @@
         }
         canvas {
             display: block;
-            background: #87CEEB;
             width: 100%;
             height: 100%;
             object-fit: cover;
         }
-        /* Pantalla de inicio / Menú superpuesto */
         #ui-overlay {
             position: absolute;
             top: 0;
@@ -52,103 +50,101 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            background: rgba(26, 26, 46, 0.9);
+            background: rgba(26, 26, 46, 0.85);
             z-index: 10;
             padding: 20px;
             text-align: center;
         }
         h1 {
-            font-size: 2.2rem;
+            font-size: 2.5rem;
             color: #ffd700;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            margin-bottom: 15px;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.6);
         }
         p {
-            font-size: 1.1rem;
-            max-width: 400px;
+            font-size: 1.2rem;
+            max-width: 500px;
             margin-bottom: 30px;
-            line-height: 1.5;
+            line-height: 1.6;
         }
         .btn {
             background: #ff6b6b;
             color: white;
             border: none;
-            padding: 15px 35px;
-            font-size: 1.3rem;
+            padding: 18px 40px;
+            font-size: 1.5rem;
             font-weight: bold;
             border-radius: 50px;
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
-            transition: transform 0.1s ease;
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.5);
+            transition: transform 0.1s ease, background 0.2s;
+        }
+        .btn:hover {
+            background: #ff5252;
         }
         .btn:active {
             transform: scale(0.95);
         }
-        /* Controles táctiles en pantalla */
         #controls {
             position: absolute;
-            bottom: 25px;
+            bottom: 30px;
             width: 100%;
             display: flex;
             justify-content: space-between;
-            padding: 0 30px;
+            padding: 0 40px;
             z-index: 5;
             pointer-events: none;
         }
         .ctrl-btn {
             pointer-events: auto;
-            width: 75px;
-            height: 75px;
-            background: rgba(255, 255, 255, 0.25);
-            border: 2px solid white;
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.3);
+            border: 3px solid white;
             border-radius: 50%;
-            font-size: 2rem;
+            font-size: 2.2rem;
             color: white;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.4);
         }
-        /* Barra superior de estado (HUD) */
         #hud {
             position: absolute;
-            top: 15px;
+            top: 20px;
             left: 20px;
             right: 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             z-index: 5;
-            font-size: 1.1rem;
+            font-size: 1.2rem;
             font-weight: bold;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
         }
         .hud-box {
-            background: rgba(0, 0, 0, 0.4);
-            padding: 8px 15px;
-            border-radius: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px 20px;
+            border-radius: 25px;
+            border: 2px solid rgba(255, 255, 255, 0.4);
         }
     </style>
 </head>
 <body>
     <div id="game-container">
-        <!-- Interfaz superior -->
         <div id="hud">
-            <div class="hud-box" id="level-text">Nivel: 1 - Granja</div>
-            <div class="hud-box" id="score-text">Maíz: 0 / 3</div>
+            <div class="hud-box" id="level-text">Nivel: 1 - Campo Verde</div>
+            <div class="hud-box" id="score-text">Distancia: 0m</div>
         </div>
 
-        <!-- Pantalla de Inicio / Menú -->
         <div id="ui-overlay">
             <h1>🐔 ¡Corre Gallina!</h1>
-            <p>¡Ayuda a la gallina a correr con su preciado huevo hasta el nido! Salta obstáculos, agáchate bajo ramas y recolecta maíz para avanzar de nivel.</p>
+            <p>¡Lleva tu preciado huevo en las alas hasta el nido! Salta troncos, agáchate bajo ramas y esquiva al zorro hambriento.</p>
             <button class="btn" id="start-btn">¡JUGAR AHORA!</button>
         </div>
 
         <canvas id="gameCanvas"></canvas>
 
-        <!-- Botones táctiles inferiores -->
         <div id="controls">
             <div class="ctrl-btn" id="btn-down">⬇️</div>
             <div class="ctrl-btn" id="btn-up">⬆️</div>
@@ -163,7 +159,6 @@
         const levelText = document.getElementById("level-text");
         const scoreText = document.getElementById("score-text");
 
-        // Ajustar tamaño del canvas a pantalla completa
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
@@ -171,72 +166,80 @@
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        // Variables de estado del juego
         let gameRunning = false;
-        let score = 0;
+        let distance = 0;
         let level = 1;
 
-        // Entidad Gallina
+        const scenarios = [
+            { name: "Campo Verde", sky: "#87CEEB", ground: "#55a630", dirt: "#415A77", speed: 6 },
+            { name: "Bosque Oscuro", sky: "#2B2D42", ground: "#3A5A40", dirt: "#1D2D44", speed: 7 },
+            { name: "Atardecer Naranja", sky: "#FF7B00", ground: "#8B4513", dirt: "#780000", speed: 8 },
+            { name: "Noche Helada", sky: "#14213D", ground: "#E5E5E5", dirt: "#334E68", speed: 9 }
+        ];
+
+        let currentScenario = scenarios[0];
+
         let chicken = {
-            x: 80,
+            x: 100,
             y: 0,
-            width: 50,
-            height: 50,
+            width: 60,
+            height: 60,
             vy: 0,
             jumping: false,
             ducking: false,
-            color: "white"
+            animFrame: 0
         };
 
         let obstacles = [];
-        let cornItems = [];
-        let gameSpeed = 5;
-        let frameCount = 0;
+        let reachedNest = false;
 
         function resetGame() {
-            score = 0;
-            level = 1;
-            gameSpeed = 5;
+            distance = 0;
+            currentScenario = scenarios[(level - 1) % scenarios.length];
             obstacles = [];
-            cornItems = [];
+            reachedNest = false;
+            levelText.innerText = `Nivel: ${level} - ${currentScenario.name}`;
             updateHUD();
         }
 
         function updateHUD() {
-            levelText.innerText = `Nivel: ${level} - Granja`;
-            scoreText.innerText = `Maíz: ${score} / 3`;
+            scoreText.innerText = `Distancia: ${Math.floor(distance)}m`;
         }
 
-        // Botón para iniciar / reiniciar el juego
         startBtn.addEventListener("click", () => {
             overlay.style.display = "none";
             resetGame();
             gameRunning = true;
+            animateChicken();
         });
 
-        // Controles de botones táctiles
-        document.getElementById("btn-up").addEventListener("click", () => {
+        function animateChicken() {
             if (!gameRunning) return;
+            chicken.animFrame = (chicken.animFrame + 1) % 10;
+            setTimeout(animateChicken, 100);
+        }
+
+        document.getElementById("btn-up").addEventListener("click", () => {
+            if (!gameRunning || reachedNest) return;
             if (!chicken.jumping) {
-                chicken.vy = -14;
+                chicken.vy = -16;
                 chicken.jumping = true;
                 chicken.ducking = false;
             }
         });
 
         document.getElementById("btn-down").addEventListener("click", () => {
-            if (!gameRunning) return;
+            if (!gameRunning || reachedNest) return;
             if (!chicken.jumping) {
                 chicken.ducking = true;
                 setTimeout(() => { chicken.ducking = false; }, 600);
             }
         });
 
-        // Controles de teclado para PC (opcional)
         window.addEventListener("keydown", (e) => {
-            if (!gameRunning) return;
+            if (!gameRunning || reachedNest) return;
             if ((e.code === "Space" || e.code === "ArrowUp") && !chicken.jumping) {
-                chicken.vy = -14;
+                chicken.vy = -16;
                 chicken.jumping = true;
                 chicken.ducking = false;
             }
@@ -247,16 +250,31 @@
         });
 
         function update() {
-            if (!gameRunning) return;
+            if (!gameRunning || reachedNest) return;
 
-            const groundY = canvas.height - 120;
+            distance += currentScenario.speed / 10;
+            updateHUD();
 
-            // Física de salto y gravedad de la gallina
-            chicken.vy += 0.6;
+            if (distance >= level * 100) {
+                gameRunning = false;
+                reachedNest = true;
+                setTimeout(() => {
+                    level++;
+                    document.querySelector("#ui-overlay h1").innerText = "🎉 ¡Llegaste al Nido!";
+                    document.querySelector("#ui-overlay p").innerText = `¡Bien hecho! Prepárate para el siguiente nivel.`;
+                    startBtn.innerText = "SIGUIENTE NIVEL";
+                    overlay.style.display = "flex";
+                }, 1000);
+                return;
+            }
+
+            const groundY = canvas.height - 150;
+
+            chicken.vy += 0.8;
             chicken.y += chicken.vy;
 
-            let currentHeight = chicken.ducking ? 25 : 50;
-            let currentWidth = chicken.ducking ? 60 : 50;
+            let currentHeight = chicken.ducking ? 40 : 60;
+            let currentWidth = chicken.ducking ? 70 : 60;
             chicken.height = currentHeight;
             chicken.width = currentWidth;
 
@@ -266,38 +284,25 @@
                 chicken.jumping = false;
             }
 
-            // Generar obstáculos (Ramas o Zorro)
-            frameCount++;
-            if (frameCount % 100 === 0) {
+            if (Math.random() < 0.015) {
                 let isBranch = Math.random() > 0.5;
                 obstacles.push({
                     x: canvas.width,
-                    y: isBranch ? groundY - 90 : groundY - 50,
-                    width: 40,
+                    y: isBranch ? groundY - 110 : groundY - 50,
+                    width: isBranch ? 40 : 50,
                     height: isBranch ? 30 : 50,
                     type: isBranch ? "branch" : "fox"
                 });
             }
 
-            // Generar maíz
-            if (frameCount % 140 === 0) {
-                cornItems.push({
-                    x: canvas.width,
-                    y: groundY - 140,
-                    width: 25,
-                    height: 25
-                });
-            }
-
-            // Movimiento y colisión de obstáculos
             for (let i = obstacles.length - 1; i >= 0; i--) {
-                obstacles[i].x -= gameSpeed;
-                
+                obstacles[i].x -= currentScenario.speed;
+
                 if (
-                    chicken.x < obstacles[i].x + obstacles[i].width &&
-                    chicken.x + chicken.width > obstacles[i].x &&
-                    chicken.y < obstacles[i].y + obstacles[i].height &&
-                    chicken.y + chicken.height > obstacles[i].y
+                    chicken.x < obstacles[i].x + obstacles[i].width - 10 &&
+                    chicken.x + chicken.width - 10 > obstacles[i].x &&
+                    chicken.y < obstacles[i].y + obstacles[i].height - 10 &&
+                    chicken.y + chicken.height > obstacles[i].y + 10
                 ) {
                     gameRunning = false;
                     overlay.style.display = "flex";
@@ -309,82 +314,97 @@
                     obstacles.splice(i, 1);
                 }
             }
-
-            // Movimiento y colisión de maíz
-            for (let i = cornItems.length - 1; i >= 0; i--) {
-                cornItems[i].x -= gameSpeed;
-
-                if (
-                    chicken.x < cornItems[i].x + cornItems[i].width &&
-                    chicken.x + chicken.width > cornItems[i].x &&
-                    chicken.y < cornItems[i].y + cornItems[i].height &&
-                    chicken.y + chicken.height > cornItems[i].y
-                ) {
-                    cornItems.splice(i, 1);
-                    score++;
-                    updateHUD();
-
-                    if (score >= 3) {
-                        level++;
-                        score = 0;
-                        gameSpeed += 1.5;
-                        updateHUD();
-                    }
-                }
-
-                if (cornItems[i].x + cornItems[i].width < 0) {
-                    cornItems.splice(i, 1);
-                }
-            }
         }
 
         function draw() {
-            // Fondo de cielo
-            ctx.fillStyle = "#87CEEB";
+            ctx.fillStyle = currentScenario.sky;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            const groundY = canvas.height - 120;
+            const groundY = canvas.height - 150;
 
-            // Suelo de la granja
-            ctx.fillStyle = "#55a630";
-            ctx.fillRect(0, groundY, canvas.width, 20);
-            ctx.fillStyle = "#8B4513";
-            ctx.fillRect(0, groundY + 20, canvas.width, 100);
+            ctx.fillStyle = currentScenario.ground;
+            ctx.fillRect(0, groundY, canvas.width, 30);
+            ctx.fillStyle = currentScenario.dirt;
+            ctx.fillRect(0, groundY + 30, canvas.width, 120);
 
-            // Dibujar Obstáculos (Ramas y Zorros)
             obstacles.forEach(obs => {
                 if (obs.type === "branch") {
-                    ctx.fillStyle = "#5c4033";
+                    ctx.fillStyle = "#8B4513";
                     ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
-                } else {
-                    ctx.fillStyle = "#d94e1f";
                     ctx.beginPath();
-                    ctx.arc(obs.x + 20, obs.y + 25, 22, 0, Math.PI * 2);
+                    ctx.moveTo(obs.x, obs.y + 10);
+                    ctx.lineTo(obs.x + obs.width, obs.y + 10);
+                    ctx.strokeStyle = "#D2691E";
+                    ctx.stroke();
+                } else {
+                    ctx.fillStyle = "#D43D1A";
+                    ctx.beginPath();
+                    ctx.arc(obs.x + 25, obs.y + 25, 20, 0, Math.PI * 2);
                     ctx.fill();
+                    ctx.fillStyle = "#A21D0A";
+                    ctx.beginPath();
+                    ctx.arc(obs.x + 20, obs.y + 20, 8, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = "white";
+                    ctx.beginPath();
+                    ctx.arc(obs.x + 30, obs.y + 15, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = "black";
+                    ctx.beginPath();
+                    ctx.arc(obs.x + 32, obs.y + 15, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = "#FFA800";
+                    ctx.fillRect(obs.x + 35, obs.y + 30, 20, 10);
                 }
             });
 
-            // Dibujar Maíz
-            cornItems.forEach(corn => {
-                ctx.fillStyle = "#ffd700";
-                ctx.beginPath();
-                ctx.arc(corn.x + 12, corn.y + 12, 10, 0, Math.PI * 2);
-                ctx.fill();
-            });
-
-            // Dibujar Gallina
-            ctx.fillStyle = chicken.color;
+            ctx.fillStyle = "white";
             ctx.beginPath();
-            let renderY = chicken.ducking ? chicken.y + 15 : chicken.y;
-            let renderH = chicken.ducking ? 30 : 50;
-            ctx.roundRect(chicken.x, renderY, chicken.width, renderH, 15);
+            let renderY = chicken.ducking ? chicken.y + 20 : chicken.y;
+            let renderH = chicken.ducking ? 40 : 60;
+            let bob = chicken.jumping ? 0 : Math.sin(chicken.animFrame) * 5;
+            ctx.roundRect(chicken.x, renderY + bob, chicken.width, renderH, 20);
             ctx.fill();
 
-            // Ojo de la gallina
+            ctx.fillStyle = "#FFA500";
+            let beakOffsetY = chicken.ducking ? 25 : 35;
+            ctx.beginPath();
+            ctx.moveTo(chicken.x + chicken.width, renderY + bob + beakOffsetY);
+            ctx.lineTo(chicken.x + chicken.width + 15, renderY + bob + beakOffsetY + 5);
+            ctx.lineTo(chicken.x + chicken.width, renderY + bob + beakOffsetY + 10);
+            ctx.fill();
+
             ctx.fillStyle = "black";
+            let eyeOffset = chicken.ducking ? 10 : 15;
             ctx.beginPath();
-            ctx.arc(chicken.x + (chicken.width - 12), renderY + 12, 4, 0, Math.PI * 2);
+            ctx.arc(chicken.x + chicken.width - 20, renderY + bob + eyeOffset, 4, 0, Math.PI * 2);
             ctx.fill();
+
+            ctx.fillStyle = "red";
+            ctx.beginPath();
+            ctx.arc(chicken.x + 30, renderY + bob + 5, 8, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = "white";
+            let eggY = chicken.ducking ? chicken.y + 5 : chicken.y - 10;
+            ctx.beginPath();
+            ctx.ellipse(chicken.x + 20, eggY + bob, 12, 18, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = "#F0F0F0";
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            if (reachedNest) {
+                gameRunning = false;
+                ctx.fillStyle = "#A597E6";
+                ctx.beginPath();
+                ctx.arc(canvas.width - 150, groundY + 15, 50, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = "#E0D8F9";
+                ctx.beginPath();
+                ctx.ellipse(canvas.width - 150, groundY + 20, 40, 25, 0, 0, Math.PI * 2);
+                ctx.fill();
+            }
         }
 
         function loop() {
@@ -393,7 +413,6 @@
             requestAnimationFrame(loop);
         }
 
-        // Arrancar el bucle del juego
         loop();
     </script>
 </body>
