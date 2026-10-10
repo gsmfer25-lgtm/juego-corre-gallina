@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>¡Corre Gallina! Protege el Huevo</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            background: #1a1a2e;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+            color: #fff;
+        }
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 900px;
+            aspect-ratio: 16 / 9;
+            background: #87CEEB;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+        }
+        #game-container.vertical {
+            aspect-ratio: 9 / 16;
+            max-width: 450px;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, #70c1b3, #b2f7ef);
+        }
+        .ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 15px;
+            pointer-events: none;
+        }
+        .hud-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 18px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.6);
+            pointer-events: auto;
+        }
+        .hud-bar-container {
+            width: 150px;
+            height: 14px;
+            background: rgba(0,0,0,0.4);
+            border-radius: 7px;
+            overflow: hidden;
+            border: 2px solid #fff;
+            margin-top: 5px;
+        }
+        .hud-bar-fill {
+            height: 100%;
+            background: #ffe066;
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.75);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+            pointer-events: auto;
+            z-index: 10;
+        }
+        .screen h1 {
+            font-size: 2.2rem;
+            color: #ffde59;
+            margin-bottom: 10px;
+            text-shadow: 3px 3px #ff5722;
+        }
+        .screen p {
+            font-size: 1.1rem;
+            max-width: 400px;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        .btn {
+            background: #ff5722;
+            color: white;
+            border: none;
+            padding: 12px 28px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(255,87,34,0.4);
+            transition: transform 0.1s, background 0.2s;
+            margin: 5px;
+        }
+        .btn:hover {
+            background: #f4511e;
+            transform: scale(1.05);
+        }
+        .btn:active {
+            transform: scale(0.95);
+        }
+        .btn-secondary {
+            background: #3f51b5;
+            box-shadow: 0 5px 15px rgba(63,81,181,0.4);
+        }
+        .btn-secondary:hover {
+            background: #303f9f;
+        }
+        /* Controles táctiles móviles */
+        .mobile-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+            pointer-events: none;
+            z-index: 5;
+        }
+        .control-group {
+            display: flex;
+            gap: 10px;
+            pointer-events: auto;
+        }
+        .ctrl-btn {
+            width: 65px;
+            height: 65px;
+            background: rgba(255, 255, 255, 0.3);
+            border: 2px solid white;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            cursor: pointer;
+            outline: none;
+        }
+        .ctrl-btn:active {
+            background: rgba(255, 255, 255, 0.6);
+            transform: scale(0.9);
+        }
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- Interfaz HUD -->
+        <div class="ui-overlay">
+            <div class="hud-top">
+                <div>
+                    <span id="hud-level">Nivel: 1 - Granja</span>
+                    <div class="hud-bar-container">
+                        <div id="hud-progress" class="hud-bar-fill"></div>
+                    </div>
+                </div>
+                <div>
+                    <span>Maíz: <span id="hud-corn">0</span>/3</span> | 
+                    <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.8rem;" onclick="toggleOrientation()">📱 Girar Vista</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botones táctiles -->
+        <div class="mobile-controls" id="mobile-controls">
+            <div class="control-group">
+                <button class="ctrl-btn" id="btn-down">⬇️</button>
+                <button class="ctrl-btn" id="btn-up">⬆️</button>
+            </div>
+            <div class="control-group">
+                <button class="ctrl-btn" id="btn-trap" style="background: rgba(255, 193, 7, 0.5);">🍌</button>
+            </div>
+        </div>
+
+        <!-- Pantalla de Inicio -->
+        <div id="start-screen" class="screen">
+            <h1>🐔 ¡Corre Gallina!</h1>
+            <p>¡Ayuda a la gallina a correr con su preciado huevo hasta el nido! Salta obstáculos, agáchate bajo ramas y recolecta maíz para lanzarle trampas cómicas al zorro hambriento.</p>
+            <button class="btn" onclick="startGame()">¡JUGAR AHORA!</button>
+        </div>
+
+        <!-- Pantalla de Game Over -->
+        <div id="gameover-screen" class="screen hidden">
+            <h1>🦊 ¡Te atrapó el Zorro!</h1>
+            <p id="gameover-msg">El zorro se ha quedado con el huevo. ¡Inténtalo de nuevo!</p>
+            <button class="btn" onclick="startGame()">REINTENTAR</button>
+        </div>
+
+        <!-- Pantalla de Victoria de Nivel -->
+        <div id="win-screen" class="screen hidden">
+            <h1>🎉 ¡Nivel Superado!</h1>
+            <p id="win-msg">¡Has llegado a salvo al nido con el huevo!</p>
+            <button class="btn" onclick="nextLevel()">SIGUIENTE NIVEL</button>
+        </div>
+    </div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Manejo de Audio Simple con Web Audio API
+    let audioCtx = null;
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+    }
+    function playSound(type) {
+        if (!audioCtx) return;
+        try {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            const now = audioCtx.currentTime;
+
+            if (type === 'jump') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(300, now);
+                osc.frequency.exponentialRampToValueAtTime(600, now + 0.15);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
+                osc.start(now);
+                osc.stop(now + 0.15);
+            } else if (type === 'slide') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(200, now);
+                osc.frequency.linearRampToValueAtTime(100, now + 0.2);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
+                osc.start(now);
+                osc.stop(now + 0.2);
+            } else if (type === 'corn') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(500, now);
+                osc.frequency.setValueAtTime(800, now + 0.08);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
+                osc.start(now);
+                osc.stop(now + 0.15);
+            } else if (type === 'trap') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.linearRampToValueAtTime(50, now + 0.3);
+                gain.gain.setValueAtTime(0.4, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            } else if (type === 'hit') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(100, now);
+                osc.frequency.setValueAtTime(300, now + 0.1);
+                gain.gain.setValueAtTime(0.5, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            }
+        } catch(e) {}
+    }
+
+    // Configuración del Juego y Estado
+    let gameState = 'START'; // START, PLAYING, GAMEOVER, WIN, NEXT
+    let level = 1;
+    let scoreDistance = 0;
+    let levelLength = 3500; // Distancia para completar el nivel
+    let cornCollected = 0;
+
+    // Personajes y Obstáculos
+    let chicken, fox, obstacles = [], cornItems = [], particles = [];
+    let keys = {};
+    let isVertical = false;
+
+    function resizeCanvas() {
+        canvas.width = 900;
+        canvas.height = 506;
+    }
+    resizeCanvas();
+
+    function toggleOrientation() {
+        isVertical = !isVertical;
+        const container = document.getElementById('game-container');
+        if (isVertical) {
+            container.classList.add('vertical');
+            canvas.width = 506;
+            canvas.height = 900;
+        } else {
+            container.classList.remove('vertical');
+            canvas.width = 900;
+            canvas.height = 506;
+        }
+    }
+
+    class Chicken {
+        constructor() {
+            this.x = 120;
+            this.y = 350;
+            this.width = 50;
+            this.height = 60;
+            this.vy = 0;
+            this.gravity = 0.8;
+            this.jumpForce = -14;
+            this.isJumping = false;
+            this.isSliding = false;
+            this.slideTimer = 0;
+            this.groundY = 370;
+        }
+
+        update() {
+            if (this.isSliding) {
+                this.height = 30;
+                this.slideTimer--;
+                if (this.slideTimer <= 0) {
+                    this.isSliding = false;
+                    this.height = 60;
+                }
+            } else {
+                this.height = 60;
+                this.vy += this.gravity;
+                this.y += this.vy;
+                if (this.y > this.groundY) {
+                    this.y = this.groundY;
+                    this.vy = 0;
+                    this.isJumping = false;
+                }
+            }
+        }
+
+        jump() {
+            if (!this.isJumping && !this.isSliding) {
+                this.vy = this.jumpForce;
+                this.isJumping = true;
+                playSound('jump');
+            }
+        }
+
+        slide() {
+            if (!this.isJumping && !this.isSliding) {
+                this.isSliding = true;
+                this.slideTimer = 35;
+                playSound('slide');
+            }
+        }
+
+        draw() {
+            ctx.save();
+            ctx.translate(this.x, this.y);
+
+            // Cuerpo de la gallina
+            ctx.fillStyle = '#f9f9f9';
+            ctx.beginPath();
+            ctx.ellipse(25, -this.height/2, 22, this.height/2, 0, 0, Math.PI*2);
+            ctx.fill();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#ddd';
+            ctx.stroke();
+
+            // Cresta roja
+            ctx.fillStyle = '#ff3b30';
+            ctx.beginPath();
+            ctx.arc(32, -this.height - 5, 7, 0, Math.PI*2);
+            ctx.arc(22, -this.height - 8, 6, 0, Math.PI*2);
+            ctx.fill();
+
+            // Pico
+            ctx.fillStyle = '#ff9500';
+            ctx.beginPath();
+            ctx.moveTo(42, -this.height/2 - 5);
+            ctx.lineTo(55, -this.height/2 - 2);
+            ctx.lineTo(42, -this.height/2 + 2);
+            ctx.fill();
+
+            // Alas levantadas sosteniendo el HUEVO DORADO
+            ctx.fillStyle = '#e5e5e5';
+            ctx.beginPath();
+            ctx.arc(15, -this.height/2 - 10, 12, 0, Math.PI);
+            ctx.fill();
+
+            // HUEVO
+            ctx.fillStyle = '#ffcc00';
+            ctx.beginPath();
+            ctx.ellipse(15, -this.height - 22, 12, 16, 0, 0, Math.PI*2);
+            ctx.fill();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#e6b800';
+            ctx.stroke();
+
+            // Patas corriendo
+            ctx.strokeStyle = '#ff9500';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            let legOffset = Math.sin(Date.now() / 60) * 10;
+            ctx.moveTo(20, 0); ctx.lineTo(20 + legOffset, 15);
+            ctx.moveTo(30, 0); ctx.lineTo(30 - legOffset, 15);
+            ctx.stroke();
+
+            ctx.restore();
+        }
+    }
+
+    class Fox {
+        constructor() {
+            this.x = 25;
+            this.y = 370;
+            this.targetX = 45;
+            this.stunnedTimer = 0;
+        }
+
+        update(chickenX) {
+            if (this.stunnedTimer > 0) {
+                this.stunnedTimer--;
+                this.x -= 1.5; // Retrocede cuando es golpeado
+            } else {
+                // Intenta acercarse a la gallina gradualmente
+                this.targetX = chickenX - 110;
+                this.x += (this.targetX - this.x) * 0.05;
+                if (this.x < 15) this.x = 15;
+            }
+        }
+
+        hit() {
+            this.stunnedTimer = 90;
+            this.x -= 70; // Impacto fuerte hacia atrás
+            playSound('hit');
+            for(let i=0; i<8; i++) {
+                particles.push(new Particle(this.x + 30, this.y - 30, '#ffcc00', 'star'));
+            }
+        }
+
+        draw() {
+            ctx.save();
+            ctx.translate(this.x, this.y);
+
+            // Cuerpo del Zorro
+            ctx.fillStyle = '#ff6b35';
+            ctx.beginPath();
+            ctx.ellipse(30, -25, 30, 20, 0, 0, Math.PI*2);
+            ctx.fill();
+
+            // Cabeza
+            ctx.beginPath();
+            ctx.arc(55, -35, 18, 0, Math.PI*2);
+            ctx.fill();
+
+            // Hocico
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.moveTo(65, -30); ctx.lineTo(75, -25); ctx.lineTo(60, -20);
+            ctx.fill();
+
+            // Ojos de enojo / mareado
+            if (this.stunnedTimer > 0) {
+                ctx.fillStyle = '#000';
+                ctx.font = '16px Arial';
+                ctx.fillText("💫", 48, -45);
+            } else {
+                ctx.fillStyle = '#000';
+                ctx.fillRect(52, -42, 4, 4);
+            }
+
+            // Cola esponjosa
+            ctx.fillStyle = '#ff6b35';
+            ctx.beginPath();
+            ctx.ellipse(-5, -30, 15, 10, -0.5, 0, Math.PI*2);
+            ctx.fill();
+
+            ctx.restore();
+        }
+    }
+
+    class Obstacle {
+        constructor(x, type) {
+            this.x = x;
+            this.type = type; // 'rock', 'fence', 'log'
+            this.width = type === 'log' ? 65 : 40;
+            this.height = type === 'fence' ? 55 : (type === 'log' ? 25 : 40);
+            this.y = type === 'log' ? 320 : 370 - this.height;
+        }
+        update(speed) {
+            this.x -= speed;
+        }
+        draw() {
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            if (this.type === 'fence') {
+                ctx.fillStyle = '#8b5a2b';
+                ctx.fillRect(10, 0, 8, this.height);
+                ctx.fillRect(25, 0, 8, this.height);
+                ctx.fillRect(0, 15, 45, 6);
+                ctx.fillRect(0, 35, 45, 6);
+            } else if (this.type === 'rock') {
+                ctx.fillStyle = '#9e9e9e';
+                ctx.beginPath();
+                ctx.arc(20, this.height/2, this.height/2, 0, Math.PI*2);
+                ctx.fill();
+            } else if (this.type === 'log') {
+                ctx.fillStyle = '#5c4033';
+                ctx.fillRect(0, 0, this.width, this.height);
+                ctx.fillStyle = '#8b5a2b';
+                ctx.beginPath();
+                ctx.arc(this.width, this.height/2, this.height/2, 0, Math.PI*2);
+                ctx.fill();
+            }
+            ctx.restore();
+        }
+    }
+
+    class Corn {
+        constructor(x, y) {
+            this.x = x;
+            this.y = y;
+            this.width = 25;
+            this.height = 25;
+            this.collected = false;
+        }
+        update(speed) {
+            this.x -= speed;
+        }
+        draw() {
+            if (this.collected) return;
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.fillStyle = '#ffeb3b';
+            ctx.beginPath();
+            ctx.ellipse(12, 12, 8, 12, 0.3, 0, Math.PI*2);
+            ctx.fill();
+            ctx.fillStyle = '#4caf50';
+            ctx.fillRect(10, 0, 4, 6);
+            ctx.restore();
+        }
+    }
+
+    class Particle {
+        constructor(x, y, color, type) {
+            this.x = x; this.y = y;
+            this.color = color;
+            this.vx = (Math.random() - 0.5) * 6;
+            this.vy = (Math.random() - 0.5) * 6 - 2;
+            this.life = 30;
+            this.type = type;
+        }
+        update() {
+            this.x += this.vx;
+            this.y += this.vy;
+            this.life--;
+        }
+        draw() {
+            ctx.save();
+            if(this.type === 'star') {
+                ctx.fillStyle = this.color;
+                ctx.font = '14px Arial';
+                ctx.fillText('⭐', this.x, this.y);
+            } else {
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 4, 0, Math.PI*2);
+                ctx.fill();
+            }
+            ctx.restore();
+        }
+    }
+
+    function startGame() {
+        initAudio();
+        level = 1;
+        scoreDistance = 0;
+        cornCollected = 0;
+        startLevel();
+        document.getElementById('start-screen').classList.add('hidden');
+        document.getElementById('gameover-screen').classList.add('hidden');
+        document.getElementById('win-screen').classList.add('hidden');
+        gameState = 'PLAYING';
+    }
+
+    function startLevel() {
+        chicken = new Chicken();
+        fox = new Fox();
+        obstacles = [];
+        cornItems = [];
+        particles = [];
+        scoreDistance = 0;
+        cornCollected = 0;
+
+        // Generar obstáculos progresivos según el nivel
+        let currentDist = 500;
+        while(currentDist < levelLength - 400) {
+            let typeRand = Math.random();
+            let type = typeRand < 0.35 ? 'fence' : (typeRand < 0.7 ? 'rock' : 'log');
+            obstacles.push(new Obstacle(currentDist, type));
+            
+            // Poner maíz cerca de los obstáculos
+            if (Math.random() > 0.4) {
+                cornItems.push(new Corn(currentDist + 100, type === 'log' ? 260 : 300));
+            }
+            currentDist += Math.floor(Math.random() * 250) + 220;
+        }
+    }
+
+    function nextLevel() {
+        level++;
+        if (level > 3) level = 3; // Máximo 3 niveles temáticos
+        levelLength += 800;
+        document.getElementById('win-screen').classList.add('hidden');
+        startLevel();
+        gameState = 'PLAYING';
+    }
+
+    // Controles de Teclado
+    window.addEventListener('keydown', e => {
+        initAudio();
+        if (e.code === 'ArrowUp' || e.code === 'Space') {
+            if (gameState === 'PLAYING') chicken.jump();
+            e.preventDefault();
+        }
+        if (e.code === 'ArrowDown') {
+            if (gameState === 'PLAYING') chicken.slide();
+            e.preventDefault();
+        }
+        if (e.code === 'KeyX' || e.code === 'KeyT') {
+            useTrap();
+            e.preventDefault();
+        }
+    });
+
+    // Controles Táctiles
+    document.getElementById('btn-up').addEventListener('click', () => { initAudio(); if(gameState==='PLAYING') chicken.jump(); });
+    document.getElementById('btn-down').addEventListener('click', () => { initAudio(); if(gameState==='PLAYING') chicken.slide(); });
+    document.getElementById('btn-trap').addEventListener('click', () => { initAudio(); useTrap(); });
+
+    function useTrap() {
+        if (cornCollected >= 2) {
+            cornCollected -= 2;
+            fox.hit();
+            playSound('trap');
+        }
+    }
+
+    function update() {
+        if (gameState !== 'PLAYING') return;
+
+        let gameSpeed = 5 + (level * 0.8);
+        scoreDistance += gameSpeed;
+
+        chicken.update();
+        fox.update(chicken.x);
+
+        // Actualizar obstáculos
+        obstacles.forEach(obs => obs.update(gameSpeed));
+        cornItems.forEach(corn => corn.update(gameSpeed));
+        particles.forEach(p => p.update());
+        particles = particles.filter(p => p.life > 0);
+
+        // Colisiones con Obstáculos
+        obstacles.forEach(obs => {
+            // Margen de colisión ajustado
+            if (
+                chicken.x + 25 > obs.x &&
+                chicken.x - 10 < obs.x + obs.width &&
+                chicken.y > obs.y &&
+                chicken.y - chicken.height < obs.y + obs.height
+            ) {
+                // Si la gallina está agachada pasa debajo de los troncos altos
+                if (!(chicken.isSliding && obs.type === 'log')) {
+                    gameState = 'GAMEOVER';
+                    document.getElementById('gameover-screen').classList.remove('hidden');
+                    document.getElementById('gameover-msg').innerText = "¡La gallina tropezó y el zorro alcanzó el huevo!";
+                }
+            }
+        });
+
+        // Recolectar Maíz
+        cornItems.forEach(corn => {
+            if (!corn.collected &&
+                chicken.x + 25 > corn.x &&
+                chicken.x - 25 < corn.x + corn.width &&
+                chicken.y > corn.y &&
+                chicken.y - chicken.height < corn.y + corn.height
+            ) {
+                corn.collected = true;
+                cornCollected++;
+                playSound('corn');
+                for(let i=0; i<5; i++) {
+                    particles.push(new Particle(corn.x + 12, corn.y + 12, '#ffeb3b', 'spark'));
+                }
+            }
+        });
+
+        // Verificar si el zorro atrapa a la gallina
+        if (chicken.x - fox.x < 35 && fox.stunnedTimer <= 0) {
+            gameState = 'GAMEOVER';
+            document.getElementById('gameover-screen').classList.remove('hidden');
+            document.getElementById('gameover-msg').innerText = "¡El zorro estaba demasiado cerca y te atrapó!";
+        }
+
+        // Verificar Victoria de Nivel
+        if (scoreDistance >= levelLength) {
+            gameState = 'WIN';
+            document.getElementById('win-screen').classList.remove('hidden');
+            let levelNames = ["La Granja", "El Bosque Encantado", "La Montaña Nevada"];
+            document.getElementById('win-msg').innerText = `¡Has completado ${levelNames[level-1]} con éxito! El huevo está a salvo en el nido.`;
+        }
+
+        // Actualizar HUD
+        document.getElementById('hud-corn').innerText = cornCollected;
+        let progressPercent = Math.min(100, (scoreDistance / levelLength) * 100);
+        document.getElementById('hud-progress').style.width = progressPercent + '%';
+        let levelNames = ["1 - Granja", "2 - Bosque", "3 - Nevada"];
+        document.getElementById('hud-level').innerText = `Nivel: ${levelNames[level-1]}`;
+    }
+
+    function drawBackground() {
+        // Colores temáticos por nivel
+        let bgColors = ['#87CEEB', '#2e7d32', '#90caf9'];
+        ctx.fillStyle = bgColors[level - 1];
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Suelo
+        ctx.fillStyle = level === 3 ? '#e0f7fa' : (level === 2 ? '#1b5e20' : '#8d6e63');
+        ctx.fillRect(0, 430, canvas.width, canvas.height - 430);
+
+        // Detalles del suelo (pasto o nieve)
+        ctx.fillStyle = level === 3 ? '#ffffff' : (level === 2 ? '#33691e' : '#a1887f');
+        ctx.fillRect(0, 430, canvas.width, 10);
+
+        // Línea de Meta / Nido al final del nivel
+        let finishDist = levelLength - scoreDistance + 120;
+        if (finishDist < canvas.width + 100) {
+            ctx.fillStyle = '#d7ccc8';
+            ctx.fillRect(finishDist, 280, 20, 150); // Poste
+            // Nido con bandera
+            ctx.fillStyle = '#795548';
+            ctx.beginPath();
+            ctx.arc(finishDist + 10, 310, 35, 0, Math.PI);
+            ctx.fill();
+            ctx.fillStyle = '#ff5722';
+            ctx.beginPath();
+            ctx.moveTo(finishDist + 20, 275);
+            ctx.lineTo(finishDist + 75, 295);
+            ctx.lineTo(finishDist + 20, 315);
+            ctx.fill();
+        }
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawBackground();
+
+        obstacles.forEach(obs => obs.draw());
+        cornItems.forEach(corn => corn.draw());
+        particles.forEach(p => p.draw());
+
+        chicken.draw();
+        fox.draw();
+    }
+
+    function loop() {
+        update();
+        draw();
+        requestAnimationFrame(loop);
+    }
+
+    // Iniciar bucle de renderizado
+    loop();
+</script>
+
+</body>
+</html>
