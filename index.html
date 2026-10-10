@@ -52,7 +52,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            background: rgba(26, 26, 46, 0.85);
+            background: rgba(26, 26, 46, 0.9);
             z-index: 10;
             padding: 20px;
             text-align: center;
@@ -87,7 +87,7 @@
         /* Controles táctiles en pantalla */
         #controls {
             position: absolute;
-            bottom: 20px;
+            bottom: 25px;
             width: 100%;
             display: flex;
             justify-content: space-between;
@@ -97,19 +97,19 @@
         }
         .ctrl-btn {
             pointer-events: auto;
-            width: 70px;
-            height: 70px;
+            width: 75px;
+            height: 75px;
             background: rgba(255, 255, 255, 0.25);
             border: 2px solid white;
             border-radius: 50%;
-            font-size: 1.8rem;
+            font-size: 2rem;
             color: white;
             display: flex;
             align-items: center;
             justify-content: center;
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
-        /* Barra superior de estado */
+        /* Barra superior de estado (HUD) */
         #hud {
             position: absolute;
             top: 15px;
@@ -142,8 +142,8 @@
         <!-- Pantalla de Inicio / Menú -->
         <div id="ui-overlay">
             <h1>🐔 ¡Corre Gallina!</h1>
-            <p>¡Ayuda a la gallina a correr con su preciado huevo hasta el nido! Salta obstáculos, agáchate bajo ramas y recolecta maíz para lanzar trampa cósmicas al zorro hambriento.</p>
-            <button class="btn" id="start-btn">¡JUGAR HORA!</button>
+            <p>¡Ayuda a la gallina a correr con su preciado huevo hasta el nido! Salta obstáculos, agáchate bajo ramas y recolecta maíz para avanzar de nivel.</p>
+            <button class="btn" id="start-btn">¡JUGAR AHORA!</button>
         </div>
 
         <canvas id="gameCanvas"></canvas>
@@ -163,7 +163,7 @@
         const levelText = document.getElementById("level-text");
         const scoreText = document.getElementById("score-text");
 
-        // Ajustar pantalla completa real de forma dinámica
+        // Ajustar tamaño del canvas a pantalla completa
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
@@ -171,12 +171,12 @@
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        // Estado del juego
+        // Variables de estado del juego
         let gameRunning = false;
         let score = 0;
         let level = 1;
 
-        // Entidades del juego
+        // Entidad Gallina
         let chicken = {
             x: 80,
             y: 0,
@@ -207,14 +207,14 @@
             scoreText.innerText = `Maíz: ${score} / 3`;
         }
 
-        // Iniciar juego al hacer clic en el botón
+        // Botón para iniciar / reiniciar el juego
         startBtn.addEventListener("click", () => {
             overlay.style.display = "none";
             resetGame();
             gameRunning = true;
         });
 
-        // Controles táctiles y teclado
+        // Controles de botones táctiles
         document.getElementById("btn-up").addEventListener("click", () => {
             if (!gameRunning) return;
             if (!chicken.jumping) {
@@ -232,6 +232,7 @@
             }
         });
 
+        // Controles de teclado para PC (opcional)
         window.addEventListener("keydown", (e) => {
             if (!gameRunning) return;
             if ((e.code === "Space" || e.code === "ArrowUp") && !chicken.jumping) {
@@ -250,7 +251,7 @@
 
             const groundY = canvas.height - 120;
 
-            // Física de la gallina (Salto y gravedad)
+            // Física de salto y gravedad de la gallina
             chicken.vy += 0.6;
             chicken.y += chicken.vy;
 
@@ -265,7 +266,7 @@
                 chicken.jumping = false;
             }
 
-            // Generar obstáculos (ramas o zorros)
+            // Generar obstáculos (Ramas o Zorro)
             frameCount++;
             if (frameCount % 100 === 0) {
                 let isBranch = Math.random() > 0.5;
@@ -279,7 +280,7 @@
             }
 
             // Generar maíz
-            if (frameCount % 150 === 0) {
+            if (frameCount % 140 === 0) {
                 cornItems.push({
                     x: canvas.width,
                     y: groundY - 140,
@@ -288,21 +289,19 @@
                 });
             }
 
-            // Mover obstáculos
+            // Movimiento y colisión de obstáculos
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 obstacles[i].x -= gameSpeed;
                 
-                // Colisión básica con obstáculos
                 if (
                     chicken.x < obstacles[i].x + obstacles[i].width &&
                     chicken.x + chicken.width > obstacles[i].x &&
                     chicken.y < obstacles[i].y + obstacles[i].height &&
                     chicken.y + chicken.height > obstacles[i].y
                 ) {
-                    // Game Over o choque
                     gameRunning = false;
                     overlay.style.display = "flex";
-                    document.querySelector("#ui-overlay h1").innerText = "💥 ¡Oh no, te atrapó el zorro!";
+                    document.querySelector("#ui-overlay h1").innerText = "💥 ¡Te atrapó el zorro!";
                     startBtn.innerText = "VOLVER A INTENTAR";
                 }
 
@@ -311,11 +310,10 @@
                 }
             }
 
-            // Mover maíz
+            // Movimiento y colisión de maíz
             for (let i = cornItems.length - 1; i >= 0; i--) {
                 cornItems[i].x -= gameSpeed;
 
-                // Colisión con maíz
                 if (
                     chicken.x < cornItems[i].x + cornItems[i].width &&
                     chicken.x + chicken.width > cornItems[i].x &&
@@ -341,25 +339,24 @@
         }
 
         function draw() {
-            // Limpiar lienzo con el fondo del cielo
+            // Fondo de cielo
             ctx.fillStyle = "#87CEEB";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             const groundY = canvas.height - 120;
 
-            // Dibujar suelo de la granja
+            // Suelo de la granja
             ctx.fillStyle = "#55a630";
             ctx.fillRect(0, groundY, canvas.width, 20);
             ctx.fillStyle = "#8B4513";
             ctx.fillRect(0, groundY + 20, canvas.width, 100);
 
-            // Dibujar Obstáculos (Ramas / Zorro)
+            // Dibujar Obstáculos (Ramas y Zorros)
             obstacles.forEach(obs => {
                 if (obs.type === "branch") {
                     ctx.fillStyle = "#5c4033";
                     ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
                 } else {
-                    // Zorro
                     ctx.fillStyle = "#d94e1f";
                     ctx.beginPath();
                     ctx.arc(obs.x + 20, obs.y + 25, 22, 0, Math.PI * 2);
@@ -396,7 +393,7 @@
             requestAnimationFrame(loop);
         }
 
-        // Iniciar el ciclo de renderizado inmediatamente
+        // Arrancar el bucle del juego
         loop();
     </script>
 </body>
