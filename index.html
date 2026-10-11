@@ -113,10 +113,9 @@
       justify-content: space-between;
       padding: 0 25px;
       z-index: 25;
-      pointer-events: none;
+      display: none; 
     }
     .touch-btn {
-      pointer-events: auto;
       width: 65px;
       height: 65px;
       border-radius: 50%;
@@ -199,7 +198,6 @@
   let targetDistance = 300;
   let speed = 4;
 
-  // --- SISTEMA DE AUDIO ELECTRÓNICO (Web Audio API) ---
   let audioCtx = null;
   let musicInterval = null;
 
@@ -212,19 +210,36 @@
     }
   }
 
+  function playJumpSound() {
+    initAudio();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.1);
+
+    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.15);
+  }
+
   function startElectroMusic() {
     initAudio();
     if (musicInterval) clearInterval(musicInterval);
 
-    // Escalas de notas electrónicas según el nivel
     const scales = [
-      [130.81, 164.81, 196.00, 261.63, 329.63], // Nivel 1: Melodía base chill
-      [146.83, 174.61, 220.00, 293.66, 349.23], // Nivel 2: Más tensión
-      [164.81, 196.00, 246.94, 329.63, 392.00]  // Nivel 3+: Alta intensidad electrónica
+      [130.81, 164.81, 196.00, 261.63, 329.63],
+      [146.83, 174.61, 220.00, 293.66, 349.23],
+      [164.81, 196.00, 246.94, 329.63, 392.00]
     ];
 
     let step = 0;
-    // La velocidad del arpegio electrónico se acelera levemente con el nivel
     let tempo = Math.max(120, 220 - (level * 20));
 
     musicInterval = setInterval(() => {
@@ -233,14 +248,12 @@
       const currentScale = scales[(level - 1) % scales.length];
       const freq = currentScale[Math.floor(Math.random() * currentScale.length)];
 
-      // Oscilador tipo diente de sierra / onda cuadrada para sonido electrónico/synth
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
 
       osc.type = level > 2 ? 'sawtooth' : 'square';
       osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
 
-      // Efecto rítmico dinámico
       gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
 
@@ -250,7 +263,6 @@
       osc.start();
       osc.stop(audioCtx.currentTime + 0.15);
 
-      // Bajo electrónico secundario en cada pulso par
       if (step % 2 === 0) {
         const bassOsc = audioCtx.createOscillator();
         const bassGain = audioCtx.createGain();
@@ -259,7 +271,7 @@
         bassGain.gain.setValueAtTime(0.1, audioCtx.currentTime);
         bassGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
         bassOsc.connect(bassGain);
-        bassGain.connect(audioCtx.destination);
+        gain.connect(audioCtx.destination);
         bassOsc.start();
         bassOsc.stop(audioCtx.currentTime + 0.1);
       }
@@ -274,7 +286,6 @@
       musicInterval = null;
     }
   }
-  // ----------------------------------------------------
 
   const groundY = () => canvas.height * 0.78;
 
@@ -299,10 +310,10 @@
   };
 
   const fox = {
-    x: -160,
+    x: -300,
     w: 65,
     h: 45,
-    reset() { this.x = -160; }
+    reset() { this.x = -300; }
   };
 
   let nest = { x: -200, w: 60, h: 30 };
@@ -341,6 +352,7 @@
     if((e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') && chicken.isGrounded && !chicken.isDucking) {
       chicken.vy = chicken.jumpPower;
       chicken.isGrounded = false;
+      playJumpSound();
     }
   });
   window.addEventListener('keyup', e => keys[e.key] = false);
@@ -350,6 +362,7 @@
     if(chicken.isGrounded && !chicken.isDucking) {
       chicken.vy = chicken.jumpPower;
       chicken.isGrounded = false;
+      playJumpSound();
     }
   });
   document.getElementById('btn-down').addEventListener('touchstart', (e) => {
@@ -369,16 +382,18 @@
     document.getElementById('main-menu').style.display = 'none';
     document.getElementById('game-over-menu').style.display = 'none';
     document.getElementById('win-menu').style.display = 'none';
+    document.getElementById('touch-controls').style.display = 'flex';
     level = 1;
     starsCount = 0;
     setupLevel();
     gameRunning = true;
-    startElectroMusic(); // Iniciar música electrónica
+    startElectroMusic();
     requestAnimationFrame(gameLoop);
   }
 
   function restartGame() {
     document.getElementById('game-over-menu').style.display = 'none';
+    document.getElementById('touch-controls').style.display = 'flex';
     setupLevel();
     gameRunning = true;
     startElectroMusic();
@@ -388,9 +403,10 @@
   function nextLevel() {
     level++;
     document.getElementById('win-menu').style.display = 'none';
+    document.getElementById('touch-controls').style.display = 'flex';
     setupLevel();
     gameRunning = true;
-    startElectroMusic(); // Cambia de ritmo/escala automáticamente al subir de nivel
+    startElectroMusic();
     requestAnimationFrame(gameLoop);
   }
 
@@ -663,6 +679,7 @@
         chicken.isSittingInNest = true;
         gameRunning = false;
         stopElectroMusic();
+        document.getElementById('touch-controls').style.display = 'none';
         setTimeout(() => {
           document.getElementById('win-menu').style.display = 'flex';
         }, 600);
@@ -673,6 +690,7 @@
   function gameOver(reason) {
     gameRunning = false;
     stopElectroMusic();
+    document.getElementById('touch-controls').style.display = 'none';
     document.getElementById('over-reason').innerText = reason;
     document.getElementById('game-over-menu').style.display = 'flex';
   }
