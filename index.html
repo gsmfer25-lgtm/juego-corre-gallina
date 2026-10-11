@@ -113,8 +113,10 @@
       justify-content: space-between;
       padding: 0 25px;
       z-index: 25;
+      pointer-events: none;
     }
     .touch-btn {
+      pointer-events: auto;
       width: 65px;
       height: 65px;
       border-radius: 50%;
@@ -197,6 +199,83 @@
   let targetDistance = 300;
   let speed = 4;
 
+  // --- SISTEMA DE AUDIO ELECTRÓNICO (Web Audio API) ---
+  let audioCtx = null;
+  let musicInterval = null;
+
+  function initAudio() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  }
+
+  function startElectroMusic() {
+    initAudio();
+    if (musicInterval) clearInterval(musicInterval);
+
+    // Escalas de notas electrónicas según el nivel
+    const scales = [
+      [130.81, 164.81, 196.00, 261.63, 329.63], // Nivel 1: Melodía base chill
+      [146.83, 174.61, 220.00, 293.66, 349.23], // Nivel 2: Más tensión
+      [164.81, 196.00, 246.94, 329.63, 392.00]  // Nivel 3+: Alta intensidad electrónica
+    ];
+
+    let step = 0;
+    // La velocidad del arpegio electrónico se acelera levemente con el nivel
+    let tempo = Math.max(120, 220 - (level * 20));
+
+    musicInterval = setInterval(() => {
+      if (!gameRunning) return;
+
+      const currentScale = scales[(level - 1) % scales.length];
+      const freq = currentScale[Math.floor(Math.random() * currentScale.length)];
+
+      // Oscilador tipo diente de sierra / onda cuadrada para sonido electrónico/synth
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      osc.type = level > 2 ? 'sawtooth' : 'square';
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+      // Efecto rítmico dinámico
+      gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.15);
+
+      // Bajo electrónico secundario en cada pulso par
+      if (step % 2 === 0) {
+        const bassOsc = audioCtx.createOscillator();
+        const bassGain = audioCtx.createGain();
+        bassOsc.type = 'triangle';
+        bassOsc.frequency.setValueAtTime(65.41, audioCtx.currentTime);
+        bassGain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        bassGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+        bassOsc.connect(bassGain);
+        bassGain.connect(audioCtx.destination);
+        bassOsc.start();
+        bassOsc.stop(audioCtx.currentTime + 0.1);
+      }
+
+      step++;
+    }, tempo);
+  }
+
+  function stopElectroMusic() {
+    if (musicInterval) {
+      clearInterval(musicInterval);
+      musicInterval = null;
+    }
+  }
+  // ----------------------------------------------------
+
   const groundY = () => canvas.height * 0.78;
 
   const chicken = {
@@ -220,10 +299,10 @@
   };
 
   const fox = {
-    x: 20,
+    x: -160,
     w: 65,
     h: 45,
-    reset() { this.x = 20; }
+    reset() { this.x = -160; }
   };
 
   let nest = { x: -200, w: 60, h: 30 };
@@ -294,6 +373,7 @@
     starsCount = 0;
     setupLevel();
     gameRunning = true;
+    startElectroMusic(); // Iniciar música electrónica
     requestAnimationFrame(gameLoop);
   }
 
@@ -301,6 +381,7 @@
     document.getElementById('game-over-menu').style.display = 'none';
     setupLevel();
     gameRunning = true;
+    startElectroMusic();
     requestAnimationFrame(gameLoop);
   }
 
@@ -309,6 +390,7 @@
     document.getElementById('win-menu').style.display = 'none';
     setupLevel();
     gameRunning = true;
+    startElectroMusic(); // Cambia de ritmo/escala automáticamente al subir de nivel
     requestAnimationFrame(gameLoop);
   }
 
@@ -363,4 +445,260 @@
   }
 
   function drawBackground() {
-    ctx.fillStyle = level % 3 === 2 ? '#2d4a22' :
+    ctx.fillStyle = level % 3 === 2 ? '#2d4a22' : '#3B7A57';
+    ctx.fillRect(0, groundY(), canvas.width, canvas.height - groundY());
+
+    bgTrees.forEach(tree => {
+      tree.x -= speed * tree.speedFactor;
+      if(tree.x + tree.w < 0) tree.x = canvas.width + Math.random() * 100;
+
+      ctx.fillStyle = '#4A3B32';
+      ctx.fillRect(tree.x + tree.w/3, groundY() - tree.h, tree.w/3, tree.h);
+
+      ctx.fillStyle = level % 3 === 3 ? '#b85d19' : '#2e6f40';
+      ctx.beginPath();
+      ctx.arc(tree.x + tree.w/2, groundY() - tree.h, tree.w, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    if(level % 3 === 2) {
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+      ctx.lineWidth = 1.5;
+      raindrops.forEach(drop => {
+        ctx.beginPath();
+        ctx.moveTo(drop.x, drop.y);
+        ctx.lineTo(drop.x - 2, drop.y + drop.length);
+        ctx.stroke();
+
+        drop.y += drop.speed;
+        drop.x -= 1;
+        if(drop.y > canvas.height) {
+          drop.y = -20;
+          drop.x = Math.random() * canvas.width;
+        }
+      });
+    }
+  }
+
+  function drawChicken() {
+    ctx.save();
+    let cx = chicken.x;
+    let cy = chicken.y;
+    let ch = chicken.isDucking ? chicken.h * 0.6 : chicken.h;
+    let cw = chicken.w;
+
+    if(chicken.isDucking) cy += chicken.h * 0.4;
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.ellipse(cx + cw/2, cy + ch/2, cw/2, ch/2, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#FF0000';
+    ctx.beginPath();
+    ctx.arc(cx + cw * 0.7, cy + 5, 6, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.arc(cx + cw * 0.75, cy + ch * 0.35, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#FFF';
+    ctx.beginPath();
+    ctx.arc(cx + cw * 0.77, cy + ch * 0.32, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#FFA500';
+    ctx.beginPath();
+    ctx.moveTo(cx + cw * 0.85, cy + ch * 0.4);
+    ctx.lineTo(cx + cw + 8, cy + ch * 0.3);
+    ctx.lineTo(cx + cw + 5, cy + ch * 0.6);
+    ctx.closePath();
+    ctx.fill();
+
+    if(!chicken.isSittingInNest) {
+      ctx.fillStyle = '#F5DEB3';
+      ctx.beginPath();
+      ctx.ellipse(cx + cw * 0.4, cy + ch * 0.6, 7, 10, 0.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawFox() {
+    ctx.save();
+    let fx = fox.x;
+    let fy = groundY() - fox.h;
+
+    ctx.fillStyle = '#D2691E';
+    ctx.fillRect(fx, fy + 10, fox.w, fox.h - 10);
+
+    ctx.beginPath();
+    ctx.moveTo(fx + fox.w - 10, fy + 10);
+    ctx.lineTo(fx + fox.w + 20, fy);
+    ctx.lineTo(fx + fox.w + 5, fy + 25);
+    ctx.fillStyle = '#D2691E';
+    ctx.fill();
+
+    ctx.fillStyle = '#8B0000';
+    ctx.beginPath();
+    ctx.moveTo(fx + fox.w, fy + 12);
+    ctx.lineTo(fx + fox.w + 18, fy + 5);
+    ctx.lineTo(fx + fox.w + 8, fy + 20);
+    ctx.fill();
+
+    ctx.fillStyle = '#FFF';
+    ctx.fillRect(fx + fox.w + 10, fy + 8, 3, 5);
+
+    ctx.fillStyle = '#FF0000';
+    ctx.beginPath();
+    ctx.arc(fx + fox.w - 5, fy + 8, 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#A0522D';
+    ctx.beginPath();
+    ctx.arc(fx - 10, fy + 20, 15, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawObstacles() {
+    obstacles.forEach(obs => {
+      if(obs.type === 'log') {
+        ctx.fillStyle = '#8B4513';
+        ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+        ctx.fillStyle = '#A0522D';
+        ctx.fillRect(obs.x + 4, obs.y + 4, obs.w - 8, obs.h - 8);
+      } else {
+        ctx.fillStyle = '#5C4033';
+        ctx.fillRect(obs.x, obs.y, obs.w, obs.h / 2);
+        ctx.fillStyle = '#228B22';
+        ctx.beginPath();
+        ctx.arc(obs.x + obs.w/2, obs.y + obs.h/2, 15, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    });
+  }
+
+  function drawStars() {
+    stars.forEach(s => {
+      if(!s.collected) {
+        ctx.fillStyle = '#FFD700';
+        ctx.beginPath();
+        ctx.arc(s.x + s.w/2, s.y + s.h/2, s.w/2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#FFF';
+        ctx.fillRect(s.x + s.w/2 - 2, s.y + s.h/2 - 2, 4, 4);
+      }
+    });
+  }
+
+  function drawNest() {
+    if(nest.x > -100) {
+      ctx.fillStyle = '#DAA520';
+      ctx.beginPath();
+      ctx.ellipse(nest.x + nest.w/2, groundY() - 10, nest.w/2, nest.h/2, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      if(chicken.isSittingInNest) {
+        ctx.fillStyle = '#F5DEB3';
+        ctx.beginPath();
+        ctx.ellipse(nest.x + nest.w/2, groundY() - 22, 10, 14, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+
+  function update() {
+    distance += speed * 0.05;
+    document.getElementById('dist-display').innerText = 'Distancia: ' + Math.floor(distance) + 'm / ' + targetDistance + 'm';
+
+    chicken.isDucking = keys['ArrowDown'] || keys['s'];
+
+    chicken.y += chicken.vy;
+    chicken.vy += chicken.gravity;
+
+    if(chicken.y >= groundY() - chicken.h) {
+      chicken.y = groundY() - chicken.h;
+      chicken.vy = 0;
+      chicken.isGrounded = true;
+    }
+
+    spawnSpawns();
+
+    obstacles.forEach((obs, index) => {
+      obs.x -= speed;
+      let chY = chicken.isDucking ? chicken.y + chicken.h * 0.4 : chicken.y;
+      let chH = chicken.isDucking ? chicken.h * 0.6 : chicken.h;
+
+      if(chicken.x < obs.x + obs.w &&
+         chicken.x + chicken.w > obs.x &&
+         chY < obs.y + obs.h &&
+         chY + chH > obs.y) {
+        gameOver("¡Chocaste con un obstáculo y el zorro te atrapó!");
+      }
+    });
+
+    stars.forEach(s => {
+      s.x -= speed;
+      if(!s.collected && chicken.x < s.x + s.w && chicken.x + chicken.w > s.x && chicken.y < s.y + s.h && chicken.y + chicken.h > s.y) {
+        s.collected = true;
+        starsCount++;
+        document.getElementById('star-display').innerText = '⭐ x' + starsCount;
+      }
+    });
+
+    obstacles = obstacles.filter(o => o.x > -50);
+    stars = stars.filter(s => s.x > -50);
+
+    fox.x += (chicken.x - fox.x - 220) * 0.025;
+
+    if(distance >= targetDistance && nest.x < -100) {
+      nest.x = canvas.width + 50;
+    }
+
+    if(nest.x > -100) {
+      nest.x -= speed;
+      if(chicken.x >= nest.x - 10) {
+        chicken.isSittingInNest = true;
+        gameRunning = false;
+        stopElectroMusic();
+        setTimeout(() => {
+          document.getElementById('win-menu').style.display = 'flex';
+        }, 600);
+      }
+    }
+  }
+
+  function gameOver(reason) {
+    gameRunning = false;
+    stopElectroMusic();
+    document.getElementById('over-reason').innerText = reason;
+    document.getElementById('game-over-menu').style.display = 'flex';
+  }
+
+  function gameLoop() {
+    if(!gameRunning) {
+      if(chicken.isSittingInNest) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawBackground();
+        drawNest();
+        drawChicken();
+      }
+      return;
+    }
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawBackground();
+    drawNest();
+    drawObstacles();
+    drawStars();
+    drawChicken();
+    drawFox();
+    update();
+
+    requestAnimationFrame(gameLoop);
+  }
+</script>
+</body>
+</html>
