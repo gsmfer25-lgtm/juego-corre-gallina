@@ -106,7 +106,7 @@
 
     #touch-controls {
       position: absolute;
-      bottom: 25px;
+      bottom: 60px; /* Subido para mejor acceso */
       left: 0;
       width: 100%;
       display: flex;
@@ -668,6 +668,10 @@
     stars = stars.filter(s => s.x > -50);
 
     fox.x += (chicken.x - fox.x - 220) * 0.025;
+    
+    if (fox.x > canvas.width) {
+       fox.x = -100;
+    }
 
     if(distance >= targetDistance && nest.x < -100) {
       nest.x = canvas.width + 50;
