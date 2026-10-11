@@ -1,471 +1,614 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>¡Corre Gallina! Protege el Huevo</title>
-    <style>
-        * {
-            box-sizing: border-box;
-            user-select: none;
-            -webkit-user-select: none;
-            touch-action: manipulation;
-        }
-        html, body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background: #1a1a2e;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: #fff;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-        #game-container {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-        }
-        canvas {
-            display: block;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        #ui-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            background: rgba(26, 26, 46, 0.85);
-            z-index: 10;
-            padding: 20px;
-            text-align: center;
-        }
-        h1 {
-            font-size: 2.5rem;
-            color: #ffd700;
-            margin-bottom: 15px;
-            text-shadow: 3px 3px 6px rgba(0,0,0,0.6);
-        }
-        p {
-            font-size: 1.2rem;
-            max-width: 500px;
-            margin-bottom: 30px;
-            line-height: 1.6;
-        }
-        .btn {
-            background: #ff6b6b;
-            color: white;
-            border: none;
-            padding: 18px 40px;
-            font-size: 1.5rem;
-            font-weight: bold;
-            border-radius: 50px;
-            cursor: pointer;
-            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.5);
-            transition: transform 0.1s ease, background 0.2s;
-        }
-        .btn:hover {
-            background: #ff5252;
-        }
-        .btn:active {
-            transform: scale(0.95);
-        }
-        #controls {
-            position: absolute;
-            bottom: 30px;
-            width: 100%;
-            display: flex;
-            justify-content: space-between;
-            padding: 0 40px;
-            z-index: 5;
-            pointer-events: none;
-            margin-bottom: 30px; 
-        }
-        .ctrl-btn {
-            pointer-events: auto;
-            width: 80px;
-            height: 80px;
-            background: rgba(255, 255, 255, 0.3);
-            border: 3px solid white;
-            border-radius: 50%;
-            font-size: 2.2rem;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 6px 15px rgba(0,0,0,0.4);
-        }
-        #hud {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            right: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 5;
-            font-size: 1.2rem;
-            font-weight: bold;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
-        }
-        .hud-box {
-            background: rgba(0, 0, 0, 0.5);
-            padding: 10px 20px;
-            border-radius: 25px;
-            border: 2px solid rgba(255, 255, 255, 0.4);
-        }
-        #alias-input {
-            width: 80%;
-            max-width: 400px;
-            padding: 12px;
-            margin-bottom: 20px;
-            border-radius: 25px;
-            border: 2px solid #ccc;
-            font-size: 1.1rem;
-            text-align: center;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>¡Corre Gallina! Protege el Huevo</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #111;
+      color: #fff;
+    }
+
+    #game-container {
+      position: relative;
+      width: 100vw;
+      height: 100dvh;
+      max-width: 800px;
+      max-height: 450px;
+      margin: 0 auto;
+      overflow: hidden;
+      background: linear-gradient(to bottom, #87CEEB 0%, #E0F6FF 70%, #8FBC8F 70%, #2E8B57 100%);
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    }
+    @media (max-width: 800px) {
+      #game-container {
+        max-height: none;
+        height: 100dvh;
+      }
+    }
+
+    .biome-1 { background: linear-gradient(to bottom, #87CEEB 0%, #E0F6FF 65%, #7EC850 65%, #48A116 100%) !important; }
+    .biome-2 { background: linear-gradient(to bottom, #4a5d6e 0%, #8397a7 65%, #3d5a35 65%, #1e3318 100%) !important; }
+    .biome-3 { background: linear-gradient(to bottom, #d2691e 0%, #ff8c00 65%, #a0522d 65%, #5c2c16 100%) !important; }
+
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+    }
+
+    #hud {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      display: flex;
+      justify-content: space-between;
+      z-index: 20;
+      font-weight: bold;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+      font-size: 16px;
+    }
+    .hud-box {
+      background: rgba(0,0,0,0.5);
+      padding: 6px 12px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .overlay {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.85);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 30;
+      text-align: center;
+      padding: 20px;
+    }
+
+    h1 { margin: 0 0 10px 0; font-size: 28px; color: #FFD700; text-shadow: 2px 2px #FF4500; }
+    p { margin: 5px 0 15px 0; font-size: 14px; max-width: 80%; line-height: 1.4; }
+    .author-tag { font-size: 13px; color: #87CEFA; margin-bottom: 15px; }
+
+    .btn {
+      background: linear-gradient(to bottom, #FF4500, #FF0000);
+      color: white;
+      border: none;
+      padding: 12px 28px;
+      font-size: 18px;
+      font-weight: bold;
+      border-radius: 25px;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+      margin: 5px;
+      transition: transform 0.1s;
+    }
+    .btn:active { transform: scale(0.95); }
+    .btn-support {
+      background: linear-gradient(to bottom, #FFD700, #FFA500);
+      color: #000;
+    }
+
+    #touch-controls {
+      position: fixed;
+      bottom: max(12px, env(safe-area-inset-bottom));
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 800px;
+      display: flex;
+      justify-content: space-between;
+      padding: 0 20px;
+      z-index: 25;
+      pointer-events: none;
+    }
+    .touch-btn {
+      width: 65px;
+      height: 65px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.3);
+      border: 2px solid white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 28px;
+      color: white;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+      pointer-events: auto;
+    }
+    .touch-btn:active { background: rgba(255,255,255,0.6); }
+
+    #support-modal { display: none; }
+  </style>
 </head>
 <body>
-    <div id="game-container">
-        <div id="hud">
-            <div class="hud-box" id="level-text">Nivel: 1 - Campo Verde</div>
-            <div class="hud-box" id="score-text">Distancia: 0m</div>
-        </div>
 
-        <div id="ui-overlay">
-            <h1>🐔 ¡Corre Gallina!</h1>
-            <input type="text" id="alias-input" placeholder="Tu Alias aquí">
-            <p>¡Lleva tu preciado huevo en las alas hasta el nido! Salta troncos, agáchate bajo ramas y esquiva al zorro hambriento.</p>
-            <button class="btn" id="start-btn">¡JUGAR AHORA!</button>
-        </div>
+<div id="game-container" class="biome-1">
+  <canvas id="gameCanvas"></canvas>
 
-        <canvas id="gameCanvas"></canvas>
+  <div id="hud">
+    <div class="hud-box" id="level-display">Nivel: 1</div>
+    <div class="hud-box" id="star-display">⭐ x0</div>
+    <div class="hud-box" id="dist-display">Distancia: 0m</div>
+  </div>
 
-        <div id="controls">
-            <div class="ctrl-btn" id="btn-down">⬇️</div>
-            <div class="ctrl-btn" id="btn-up">⬆️</div>
-        </div>
-    </div>
+  <div id="main-menu" class="overlay">
+    <h1>🐔 ¡Corre Gallina!</h1>
+    <div class="author-tag">Creador: Alejandro Fernández</div>
+    <p>¡Lleva tu huevo a salvo al nido! Esquiva ramas agachándote, salta troncos y evita al fiero zorro hambriento.</p>
+    <button class="btn" onclick="startGame()">¡JUGAR AHORA!</button>
+    <button class="btn btn-support" onclick="toggleSupport(true)">💛 Apoyar Proyecto</button>
+  </div>
 
-    <script>
-        const canvas = document.getElementById("gameCanvas");
-        const ctx = canvas.getContext("2d");
-        const overlay = document.getElementById("ui-overlay");
-        const startBtn = document.getElementById("start-btn");
-        const levelText = document.getElementById("level-text");
-        const scoreText = document.getElementById("score-text");
-        const aliasInput = document.getElementById("alias-input");
+  <div id="support-modal" class="overlay">
+    <h2>💛 Apoyar el Proyecto</h2>
+    <p>Este juego fue creado por <strong>Alejandro Fernández</strong> con mucha dedicación.</p>
+    <p>¡Gracias por jugar y ser parte del desarrollo de este proyecto independiente!</p>
+    <button class="btn" onclick="toggleSupport(false)">Volver</button>
+  </div>
 
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            
-            const controls = document.getElementById("controls");
-            if (window.innerWidth < window.innerHeight) {
-                controls.style.bottom = "30px";
-            } else {
-                controls.style.bottom = "15px";
-            }
-        }
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
+  <div id="game-over-menu" class="overlay" style="display: none;">
+    <h1 style="color: #FF3333;">¡Te atrapó el Zorro! 🦊</h1>
+    <p id="over-reason">El zorro se llevó el huevo...</p>
+    <button class="btn" onclick="restartGame()">Reintentar</button>
+  </div>
 
-        let gameRunning = false;
-        let distance = 0;
-        let level = 1;
+  <div id="win-menu" class="overlay" style="display: none;">
+    <h1 style="color: #33FF33;">¡Nivel Completado! 🪹</h1>
+    <p>¡La gallina se echó a empollar en su nido y cuidó su huevo!</p>
+    <button class="btn" onclick="nextLevel()">Siguiente Nivel</button>
+  </div>
+</div>
 
-        const scenarios = [
-            { name: "Campo Verde", sky: "#87CEEB", ground: "#55a630", dirt: "#415A77", speed: 5 },
-            { name: "Bosque Oscuro", sky: "#2B2D42", ground: "#3A5A40", dirt: "#1D2D44", speed: 6 },
-            { name: "Atardecer Naranja", sky: "#FF7B00", ground: "#8B4513", dirt: "#780000", speed: 7 },
-            { name: "Noche Helada", sky: "#14213D", ground: "#E5E5E5", dirt: "#334E68", speed: 8 }
-        ];
+<div id="touch-controls">
+  <div class="touch-btn" id="btn-down">⬇️</div>
+  <div class="touch-btn" id="btn-up">⬆️</div>
+</div>
 
-        let currentScenario = scenarios[0];
+<script>
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+  const container = document.getElementById('game-container');
 
-        let chicken = {
-            x: 100,
-            y: 0,
-            width: 60,
-            height: 60,
-            vy: 0,
-            jumping: false,
-            ducking: false,
-            animFrame: 0
-        };
+  function resizeCanvas() {
+    canvas.width = container.clientWidth;
+    canvas.height = container.clientHeight;
+  }
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+  window.addEventListener('orientationchange', () => setTimeout(resizeCanvas, 200));
 
-        let obstacles = [];
-        let reachedNest = false;
-        let fox = { x: -100, y: 0, width: 70, height: 50 };
+  let gameRunning = false;
+  let level = 1;
+  let starsCount = 0;
+  let distance = 0;
+  let targetDistance = 300;
+  let speed = 4;
 
-        function resetGame() {
-            distance = 0;
-            currentScenario = scenarios[(level - 1) % scenarios.length];
-            obstacles = [];
-            reachedNest = false;
-            levelText.innerText = `Nivel: ${level} - ${currentScenario.name}`;
-            fox.x = -200;
-            updateHUD();
-        }
+  const groundY = () => canvas.height * 0.78;
 
-        function updateHUD() {
-            scoreText.innerText = `Distancia: ${Math.floor(distance)}m`;
-        }
+  const chicken = {
+    x: 120,
+    y: 0,
+    w: 45,
+    h: 45,
+    vy: 0,
+    gravity: 0.6,
+    jumpPower: -11,
+    isGrounded: false,
+    isDucking: false,
+    isSittingInNest: false,
+    reset() {
+      this.y = groundY() - this.h;
+      this.vy = 0;
+      this.isGrounded = true;
+      this.isDucking = false;
+      this.isSittingInNest = false;
+    }
+  };
 
-        startBtn.addEventListener("click", () => {
-            overlay.style.display = "none";
-            resetGame();
-            gameRunning = true;
-            animateChicken();
+  const fox = {
+    x: -100,
+    w: 65,
+    h: 45,
+    targetX: 20,
+    reset() { this.x = -100; }
+  };
+
+  let nest = { x: -200, w: 60, h: 30 };
+  let obstacles = [];
+  let stars = [];
+  let bgTrees = [];
+  let raindrops = [];
+
+  function initBgTrees() {
+    bgTrees = [];
+    for(let i = 0; i < 8; i++) {
+      bgTrees.push({
+        x: Math.random() * canvas.width * 2,
+        w: 30 + Math.random() * 20,
+        h: 80 + Math.random() * 40,
+        speedFactor: 0.3 + Math.random() * 0.2
+      });
+    }
+  }
+
+  function initRain() {
+    raindrops = [];
+    for(let i = 0; i < 50; i++) {
+      raindrops.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        length: 10 + Math.random() * 15,
+        speed: 8 + Math.random() * 5
+      });
+    }
+  }
+
+  let keys = {};
+  window.addEventListener('keydown', e => {
+    keys[e.key] = true;
+    if((e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') && chicken.isGrounded && !chicken.isDucking) {
+      chicken.vy = chicken.jumpPower;
+      chicken.isGrounded = false;
+    }
+  });
+  window.addEventListener('keyup', e => keys[e.key] = false);
+
+  document.getElementById('btn-up').addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    if(chicken.isGrounded && !chicken.isDucking) {
+      chicken.vy = chicken.jumpPower;
+      chicken.isGrounded = false;
+    }
+  });
+  document.getElementById('btn-down').addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    chicken.isDucking = true;
+  });
+  document.getElementById('btn-down').addEventListener('touchend', (e) => {
+    e.preventDefault();
+    chicken.isDucking = false;
+  });
+
+  function toggleSupport(show) {
+    document.getElementById('support-modal').style.display = show ? 'flex' : 'none';
+  }
+
+  function startGame() {
+    document.getElementById('main-menu').style.display = 'none';
+    document.getElementById('game-over-menu').style.display = 'none';
+    document.getElementById('win-menu').style.display = 'none';
+    level = 1;
+    starsCount = 0;
+    setupLevel();
+    gameRunning = true;
+    requestAnimationFrame(gameLoop);
+  }
+
+  function restartGame() {
+    document.getElementById('game-over-menu').style.display = 'none';
+    setupLevel();
+    gameRunning = true;
+    requestAnimationFrame(gameLoop);
+  }
+
+  function nextLevel() {
+    level++;
+    document.getElementById('win-menu').style.display = 'none';
+    setupLevel();
+    gameRunning = true;
+    requestAnimationFrame(gameLoop);
+  }
+
+  function setupLevel() {
+    distance = 0;
+    targetDistance = 250 + level * 100;
+    speed = 4 + level * 0.5;
+    obstacles = [];
+    stars = [];
+    chicken.reset();
+    fox.reset();
+    nest.x = -200;
+    initBgTrees();
+
+    container.className = '';
+    if(level % 3 === 1) {
+      container.classList.add('biome-1');
+    } else if(level % 3 === 2) {
+      container.classList.add('biome-2');
+      initRain();
+    } else {
+      container.classList.add('biome-3');
+    }
+
+    document.getElementById('level-display').innerText = 'Nivel: ' + level;
+    document.getElementById('star-display').innerText = '⭐ x' + starsCount;
+  }
+
+  function spawnSpawns() {
+    if(distance >= targetDistance - 50) return;
+    let lastObstacle = obstacles[obstacles.length - 1];
+    let minDistance = 180 + Math.random() * 100;
+
+    if(!lastObstacle || (canvas.width - lastObstacle.x >= minDistance)) {
+      let type = Math.random() > 0.5 ? 'branch' : 'log';
+      if(type === 'log') {
+        obstacles.push({ x: canvas.width + 20, y: groundY() - 30, w: 35, h: 30, type: 'log' });
+      } else {
+        obstacles.push({ x: canvas.width + 20, y: groundY() - 85, w: 50, h: 30, type: 'branch' });
+      }
+
+      if(Math.random() > 0.4) {
+        stars.push({
+          x: canvas.width + 30,
+          y: type === 'log' ? groundY() - 90 : groundY() - 30,
+          w: 22,
+          h: 22,
+          collected: false
         });
+      }
+    }
+  }
 
-        function animateChicken() {
-            if (!gameRunning) return;
-            chicken.animFrame = (chicken.animFrame + 1) % 10;
-            setTimeout(animateChicken, 100);
+  function drawBackground() {
+    ctx.fillStyle = level % 3 === 2 ? '#2d4a22' : '#3B7A57';
+    ctx.fillRect(0, groundY(), canvas.width, canvas.height - groundY());
+
+    bgTrees.forEach(tree => {
+      tree.x -= speed * tree.speedFactor;
+      if(tree.x + tree.w < 0) tree.x = canvas.width + Math.random() * 100;
+
+      ctx.fillStyle = '#4A3B32';
+      ctx.fillRect(tree.x + tree.w/3, groundY() - tree.h, tree.w/3, tree.h);
+
+      ctx.fillStyle = level % 3 === 3 ? '#b85d19' : '#2e6f40';
+      ctx.beginPath();
+      ctx.arc(tree.x + tree.w/2, groundY() - tree.h, tree.w, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    if(level % 3 === 2) {
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+      ctx.lineWidth = 1.5;
+      raindrops.forEach(drop => {
+        ctx.beginPath();
+        ctx.moveTo(drop.x, drop.y);
+        ctx.lineTo(drop.x - 2, drop.y + drop.length);
+        ctx.stroke();
+        drop.y += drop.speed;
+        drop.x -= 1;
+        if(drop.y > canvas.height) {
+          drop.y = -20;
+          drop.x = Math.random() * canvas.width;
         }
+      });
+    }
+  }
 
-        const btnUp = document.getElementById("btn-up");
-        const btnDown = document.getElementById("btn-down");
+  function drawChicken() {
+    ctx.save();
+    let cx = chicken.x;
+    let cy = chicken.y;
+    let ch = chicken.isDucking ? chicken.h * 0.6 : chicken.h;
+    let cw = chicken.w;
+    if(chicken.isDucking) cy += chicken.h * 0.4;
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.ellipse(cx + cw/2, cy + ch/2, cw/2, ch/2, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#FF0000';
+    ctx.beginPath();
+    ctx.arc(cx + cw * 0.7, cy + 5, 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.arc(cx + cw * 0.75, cy + ch * 0.35, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#FFF';
+    ctx.beginPath();
+    ctx.arc(cx + cw * 0.77, cy + ch * 0.32, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#FFA500';
+    ctx.beginPath();
+    ctx.moveTo(cx + cw * 0.85, cy + ch * 0.4);
+    ctx.lineTo(cx + cw + 8, cy + ch * 0.3);
+    ctx.lineTo(cx + cw + 5, cy + ch * 0.6);
+    ctx.closePath();
+    ctx.fill();
+    if(!chicken.isSittingInNest) {
+      ctx.fillStyle = '#F5DEB3';
+      ctx.beginPath();
+      ctx.ellipse(cx + cw * 0.4, cy + ch * 0.6, 7, 10, 0.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
 
-        btnUp.addEventListener("touchstart", (e) => {
-            e.preventDefault();
-            if (!gameRunning || reachedNest) return;
-            if (!chicken.jumping) {
-                chicken.vy = -16;
-                chicken.jumping = true;
-                chicken.ducking = false;
-            }
-        }, {passive: false});
+  function drawFox() {
+    ctx.save();
+    let fx = fox.x;
+    let fy = groundY() - fox.h;
+    ctx.fillStyle = '#D2691E';
+    ctx.fillRect(fx, fy + 10, fox.w, fox.h - 10);
+    ctx.beginPath();
+    ctx.moveTo(fx + fox.w - 10, fy + 10);
+    ctx.lineTo(fx + fox.w + 20, fy);
+    ctx.lineTo(fx + fox.w + 5, fy + 25);
+    ctx.fillStyle = '#D2691E';
+    ctx.fill();
+    ctx.fillStyle = '#8B0000';
+    ctx.beginPath();
+    ctx.moveTo(fx + fox.w, fy + 12);
+    ctx.lineTo(fx + fox.w + 18, fy + 5);
+    ctx.lineTo(fx + fox.w + 8, fy + 20);
+    ctx.fill();
+    ctx.fillStyle = '#FFF';
+    ctx.fillRect(fx + fox.w + 10, fy + 8, 3, 5);
+    ctx.fillStyle = '#FF0000';
+    ctx.beginPath();
+    ctx.arc(fx + fox.w - 5, fy + 8, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#A0522D';
+    ctx.beginPath();
+    ctx.arc(fx - 10, fy + 20, 15, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
 
-        btnDown.addEventListener("touchstart", (e) => {
-            e.preventDefault();
-            if (!gameRunning || reachedNest) return;
-            if (!chicken.jumping) {
-                chicken.ducking = true;
-                setTimeout(() => { chicken.ducking = false; }, 600);
-            }
-        }, {passive: false});
+  function drawObstacles() {
+    obstacles.forEach(obs => {
+      if(obs.type === 'log') {
+        ctx.fillStyle = '#8B4513';
+        ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+        ctx.fillStyle = '#A0522D';
+        ctx.fillRect(obs.x + 4, obs.y + 4, obs.w - 8, obs.h - 8);
+      } else {
+        ctx.fillStyle = '#5C4033';
+        ctx.fillRect(obs.x, obs.y, obs.w, obs.h / 2);
+        ctx.fillStyle = '#228B22';
+        ctx.beginPath();
+        ctx.arc(obs.x + obs.w/2, obs.y + obs.h/2, 15, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    });
+  }
 
-        window.addEventListener("keydown", (e) => {
-            if (!gameRunning || reachedNest) return;
-            if ((e.code === "Space" || e.code === "ArrowUp") && !chicken.jumping) {
-                chicken.vy = -16;
-                chicken.jumping = true;
-                chicken.ducking = false;
-            }
-            if (e.code === "ArrowDown" && !chicken.jumping) {
-                chicken.ducking = true;
-                setTimeout(() => { chicken.ducking = false; }, 600);
-            }
-        });
+  function drawStars() {
+    stars.forEach(s => {
+      if(!s.collected) {
+        ctx.fillStyle = '#FFD700';
+        ctx.beginPath();
+        ctx.arc(s.x + s.w/2, s.y + s.h/2, s.w/2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#FFF';
+        ctx.fillRect(s.x + s.w/2 - 2, s.y + s.h/2 - 2, 4, 4);
+      }
+    });
+  }
 
-        function update() {
-            if (!gameRunning || reachedNest) return;
+  function drawNest() {
+    if(nest.x > -100) {
+      ctx.fillStyle = '#DAA520';
+      ctx.beginPath();
+      ctx.ellipse(nest.x + nest.w/2, groundY() - 10, nest.w/2, nest.h/2, 0, 0, Math.PI * 2);
+      ctx.fill();
+      if(chicken.isSittingInNest) {
+        ctx.fillStyle = '#F5DEB3';
+        ctx.beginPath();
+        ctx.ellipse(nest.x + nest.w/2, groundY() - 22, 10, 14, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
 
-            distance += currentScenario.speed / 10;
-            updateHUD();
+  function update() {
+    distance += speed * 0.05;
+    document.getElementById('dist-display').innerText = 'Distancia: ' + Math.floor(distance) + 'm / ' + targetDistance + 'm';
+    chicken.isDucking = keys['ArrowDown'] || keys['s'];
+    chicken.y += chicken.vy;
+    chicken.vy += chicken.gravity;
+    if(chicken.y >= groundY() - chicken.h) {
+      chicken.y = groundY() - chicken.h;
+      chicken.vy = 0;
+      chicken.isGrounded = true;
+    }
 
-            if (distance >= level * 100) {
-                gameRunning = false;
-                reachedNest = true;
-                setTimeout(() => {
-                    level++;
-                    document.querySelector("#ui-overlay h1").innerText = "🎉 ¡Llegaste al Nido!";
-                    document.querySelector("#ui-overlay p").innerText = `¡Bien hecho, ${aliasInput.value}! Prepárate para el siguiente nivel.`;
-                    startBtn.innerText = "SIGUIENTE NIVEL";
-                    overlay.style.display = "flex";
-                }, 1000);
-                return;
-            }
+    spawnSpawns();
 
-            const groundY = canvas.height - 150;
+    obstacles.forEach((obs, index) => {
+      obs.x -= speed;
+      let chY = chicken.isDucking ? chicken.y + chicken.h * 0.4 : chicken.y;
+      let chH = chicken.isDucking ? chicken.h * 0.6 : chicken.h;
 
-            chicken.vy += 0.8;
-            chicken.y += chicken.vy;
-
-            let currentHeight = chicken.ducking ? 40 : 60;
-            let currentWidth = chicken.ducking ? 70 : 60;
-            chicken.height = currentHeight;
-            chicken.width = currentWidth;
-
-            if (chicken.y > groundY - chicken.height) {
-                chicken.y = groundY - chicken.height;
-                chicken.vy = 0;
-                chicken.jumping = false;
-            }
-
-            if (Math.random() < 0.012) {
-                let isBranch = Math.random() > 0.5;
-                obstacles.push({
-                    x: canvas.width,
-                    y: isBranch ? groundY - 110 : groundY - 50,
-                    width: isBranch ? 40 : 50,
-                    height: isBranch ? 30 : 50,
-                    type: isBranch ? "branch" : "log"
-                });
-            }
-
-            fox.x += (chicken.x - fox.x - 180) * 0.03;
-            fox.y = groundY - fox.height;
-
-            for (let i = obstacles.length - 1; i >= 0; i--) {
-                obstacles[i].x -= currentScenario.speed;
-
-                if (
-                    chicken.x < obstacles[i].x + obstacles[i].width - 10 &&
-                    chicken.x + chicken.width - 10 > obstacles[i].x &&
-                    chicken.y < obstacles[i].y + obstacles[i].height - 10 &&
-                    chicken.y + chicken.height > obstacles[i].y + 10
-                ) {
-                    gameRunning = false;
-                    overlay.style.display = "flex";
-                    document.querySelector("#ui-overlay h1").innerText = "💥 ¡Te alcanzó el zorro!";
-                    startBtn.innerText = "VOLVER A INTENTAR";
-                }
-
-                if (
-                    fox.x < obstacles[i].x + obstacles[i].width &&
-                    fox.x + fox.width > obstacles[i].x &&
-                    fox.y < obstacles[i].y + obstacles[i].height &&
-                    fox.y + fox.height > obstacles[i].y
-                ) {
-                    obstacles.splice(i, 1);
-                    continue;
-                }
-
-                if (obstacles[i].x + obstacles[i].width < 0) {
-                    obstacles.splice(i, 1);
-                }
-            }
-
-            if (
-                chicken.x < fox.x + fox.width - 20 &&
-                chicken.x + chicken.width > fox.x + 20 &&
-                chicken.y < fox.y + fox.height &&
-                chicken.y + chicken.height > fox.y
-            ) {
-                gameRunning = false;
-                overlay.style.display = "flex";
-                document.querySelector("#ui-overlay h1").innerText = "💥 ¡Te alcanzó el zorro!";
-                startBtn.innerText = "VOLVER A INTENTAR";
-            }
+      if(chicken.x < obs.x + obs.w &&
+         chicken.x + chicken.w > obs.x &&
+         chY < obs.y + obs.h &&
+         chY + chH > obs.y) {
+        fox.x += 10;
+        obstacles.splice(index, 1);
+        if(fox.x >= chicken.x - 30) {
+          gameOver("¡El zorro te alcanzó al chocar con un obstáculo!");
         }
+      }
+    });
 
-        function draw() {
-            ctx.fillStyle = currentScenario.sky;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+    stars.forEach(s => {
+      s.x -= speed;
+      if(!s.collected && chicken.x < s.x + s.w && chicken.x + chicken.w > s.x && chicken.y < s.y + s.h && chicken.y + chicken.h > s.y) {
+        s.collected = true;
+        starsCount++;
+        document.getElementById('star-display').innerText = '⭐ x' + starsCount;
+      }
+    });
 
-            const groundY = canvas.height - 150;
+    obstacles = obstacles.filter(o => o.x > -50);
+    stars = stars.filter(s => s.x > -50);
 
-            ctx.fillStyle = currentScenario.ground;
-            ctx.fillRect(0, groundY, canvas.width, 30);
-            ctx.fillStyle = currentScenario.dirt;
-            ctx.fillRect(0, groundY + 30, canvas.width, 120);
+    if(fox.x < fox.targetX) fox.x += 0.05;
 
-            obstacles.forEach(obs => {
-                if (obs.type === "branch") {
-                    ctx.fillStyle = "#5c4033";
-                    ctx.fillRect(obs.x, obs.y, 10, obs.height);
-                    ctx.fillRect(obs.x + 10, obs.y + 10, 30, 10);
-                } else {
-                    ctx.fillStyle = "#8B4513";
-                    ctx.beginPath();
-                    ctx.roundRect(obs.x, obs.y, obs.width, obs.height, 10);
-                    ctx.fill();
-                }
-            });
+    if(distance >= targetDistance && nest.x < -100) {
+      nest.x = canvas.width + 50;
+    }
 
-            ctx.fillStyle = "#ffcccc";
-            ctx.beginPath();
-            let renderY = chicken.ducking ? chicken.y + 20 : chicken.y;
-            let renderH = chicken.ducking ? 40 : 60;
-            let bob = chicken.jumping ? 0 : Math.sin(chicken.animFrame) * 5;
-            ctx.roundRect(chicken.x, renderY + bob, chicken.width, renderH, 20);
-            ctx.fill();
+    if(nest.x > -100) {
+      nest.x -= speed;
+      if(chicken.x >= nest.x - 10) {
+        chicken.isSittingInNest = true;
+        gameRunning = false;
+        setTimeout(() => {
+          document.getElementById('win-menu').style.display = 'flex';
+        }, 600);
+      }
+    }
+  }
 
-            ctx.fillStyle = "#FFA500";
-            let beakOffsetY = chicken.ducking ? 25 : 35;
-            ctx.beginPath();
-            ctx.moveTo(chicken.x + chicken.width, renderY + bob + beakOffsetY);
-            ctx.lineTo(chicken.x + chicken.width + 15, renderY + bob + beakOffsetY + 5);
-            ctx.lineTo(chicken.x + chicken.width, renderY + bob + beakOffsetY + 10);
-            ctx.fill();
+  function gameOver(reason) {
+    gameRunning = false;
+    document.getElementById('over-reason').innerText = reason;
+    document.getElementById('game-over-menu').style.display = 'flex';
+  }
 
-            ctx.fillStyle = "black";
-            let eyeOffset = chicken.ducking ? 10 : 15;
-            ctx.beginPath();
-            ctx.arc(chicken.x + chicken.width - 20, renderY + bob + eyeOffset, 4, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.fillStyle = "red";
-            ctx.beginPath();
-            ctx.arc(chicken.x + 30, renderY + bob + 5, 8, 0, Math.PI * 2);
-            ctx.fill();
-            
-            ctx.fillStyle = "#ffffcc";
-            let wingY = chicken.ducking ? chicken.y + 25 : chicken.y + 30;
-            ctx.beginPath();
-            ctx.ellipse(chicken.x + 25, wingY + bob, 15, 8, 0, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.fillStyle = "#ffffff";
-            let eggY = chicken.ducking ? chicken.y + 5 : chicken.y - 10;
-            ctx.beginPath();
-            ctx.ellipse(chicken.x + 20, eggY + bob, 12, 18, 0, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.fillStyle = "#D43D1A";
-            ctx.beginPath();
-            ctx.roundRect(fox.x, fox.y, fox.width, fox.height, 10);
-            ctx.fill();
-            ctx.fillStyle = "#FFA800";
-            ctx.fillRect(fox.x + 50, fox.y + 20, 15, 10);
-            ctx.fillStyle = "white";
-            ctx.beginPath();
-            ctx.arc(fox.x + 20, fox.y + 15, 6, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = "black";
-            ctx.beginPath();
-            ctx.arc(fox.x + 22, fox.y + 15, 2, 0, Math.PI * 2);
-            ctx.fill();
-
-            if (reachedNest) {
-                gameRunning = false;
-                ctx.fillStyle = "#A597E6";
-                ctx.beginPath();
-                ctx.arc(canvas.width - 150, groundY + 15, 50, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.fillStyle = "#E0D8F9";
-                ctx.beginPath();
-                ctx.ellipse(canvas.width - 150, groundY + 20, 40, 25, 0, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-
-        function loop() {
-            update();
-            draw();
-            requestAnimationFrame(loop);
-        }
-
-        loop();
-    </script>
+  function gameLoop() {
+    if(!gameRunning) {
+      if(chicken.isSittingInNest) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawBackground();
+        drawNest();
+        drawChicken();
+      }
+      return;
+    }
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawBackground();
+    drawNest();
+    drawObstacles();
+    drawStars();
+    drawChicken();
+    drawFox();
+    update();
+    requestAnimationFrame(gameLoop);
+  }
+</script>
 </body>
 </html>
